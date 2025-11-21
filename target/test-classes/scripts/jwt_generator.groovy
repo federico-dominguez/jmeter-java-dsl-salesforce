@@ -5,7 +5,7 @@
 def CLIENT_ID = "3MVG9rZjd7MXFdLg_QQqBX7kDdLAAvhL1zIxwugJa6S56L94nPzq9vLbGSONrYtARPhCX0iBH6771WgYTm3ax" 
 def USERNAME = "sdominguez.federico718@agentforce.com"
 def AUDIENCE = "https://orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com" 
-def PRIVATE_KEY_PATH = "server.key" 
+def PRIVATE_KEY_PATH = "src/main/resources/config/server.key" 
 def ALGORITHM = "RS256"
 def CURRENT_TIME = System.currentTimeMillis() / 1000L;
 def EXPIRATION_TIME = CURRENT_TIME + 300L; // Token expires in 5 minutes (300 seconds)
