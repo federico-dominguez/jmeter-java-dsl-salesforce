@@ -1,0 +1,4 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1763759806766,262,GET Leads,200,OK,Clean up 1-1,text,true,,1100,373,1,1,https://orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead+WHERE+OwnerId='005gK00000AQ0ppQAD',262,0,0
+1763759807030,612,DELETE Lead,204,No Content,Clean up 1-1,,true,,869,428,1,1,https://orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com/services/data/v60.0/sobjects/Lead/00QgK000007tOSIUA2,0,0,0
+1763759806766,874,DELETE - Leads Clean Up,200,"Number of samples in transaction : 2, number of failing samples : 0",Clean up 1-1,,true,,1969,801,1,1,null,262,2,0

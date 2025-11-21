@@ -64,7 +64,7 @@ def finalJWT = "${tokenToSign}.${encodedSignature}";
 // Assign the complete JWT to a JMeter variable for use in the HTTP Request
 vars.put("JWT_ASSERTION", finalJWT);
 
-log.info("Successfully generated JWT: " + finalJWT); 
+//log.info("Successfully generated JWT: " + finalJWT); 
 
 import java.io.File
 import java.security.KeyFactory
