@@ -32,4 +32,4 @@ jobs:
           path: |
             target/surefire-reports
             target/failsafe-reports
-            target/jtls
+            target/artifacts/jtls-results-${{ github.run_id }}.zip
