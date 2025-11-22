@@ -63,7 +63,7 @@ public class PerformanceTest {
                                                 vars().set("BASE_URL",
                                                                 "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com"),
                                                 csvDataSet(
-                                                                "/src/main/resources/data/leads_data.csv")
+                                                                "src/main/resources/data/leads_data.csv")
                                                                 .ignoreFirstLine()
                                                                 .variableNames("p_lastname", "p_company",
                                                                                 "p_email_prefix", "p_leadsource",
