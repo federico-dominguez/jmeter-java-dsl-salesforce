@@ -21,8 +21,26 @@ jobs:
           java-version: '11'
           cache: maven
 
+      - name: Clean previous JTLs / prepare artifacts dir
+        run: |
+          rm -rf target/jtls || true
+          mkdir -p target/jtls
+          rm -rf target/artifacts || true
+          mkdir -p target/artifacts
+
       - name: Build and run tests
         run: mvn -B -V test
+
+      - name: Package JTLs
+        if: always()
+        run: |
+          if [ -d target/jtls ] && [ "$(ls -A target/jtls)" ]; then
+            zip -r target/artifacts/jtls-results-${{ github.run_id }}.zip target/jtls
+            echo "Created target/artifacts/jtls-results-${{ github.run_id }}.zip"
+          else
+            echo "No JTLs produced"
+            touch target/artifacts/no-jtls-${{ github.run_id }}.txt
+          fi
 
       - name: Upload test results
         if: always()
