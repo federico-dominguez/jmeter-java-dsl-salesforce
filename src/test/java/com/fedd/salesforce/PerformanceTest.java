@@ -29,14 +29,12 @@ public class PerformanceTest {
                 assertThat(stats.overall().errorsCount()).isEqualTo(0L);
         }
 
-        @Test
         private DslTestPlan getTestPlan() throws IOException {
-
                 return testPlan()
-                                .sequentialThreadGroups()
                                 .children(
                                                 vars().set("BASE_URL",
-                                                                "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com"),
+                                                                "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com")
+                                                                .set("ownerId", "005gK00000AQ0ppQAD"),
                                                 csvDataSet(
                                                                 "src/main/resources/data/leads_data.csv")
                                                                 .ignoreFirstLine()

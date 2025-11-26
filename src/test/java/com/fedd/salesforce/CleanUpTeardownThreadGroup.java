@@ -1,6 +1,7 @@
 package com.fedd.salesforce;
 
 import static us.abstracta.jmeter.javadsl.JmeterDsl.forEachController;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.httpHeaders;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonAssertion;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonExtractor;
@@ -18,9 +19,11 @@ import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 public class CleanUpTeardownThreadGroup {
 
     public DslTeardownThreadGroup getTeardownThreadGroup() {
-        // La función estática teardownThreadGroup() se llama aquí
         return teardownThreadGroup("Clean up")
                 .children(
+                        httpHeaders()
+                                .header("Authorization",
+                        "Bearer ${__P(ACCESS_TOKEN,)}"),
                         transaction("Opportunities Clean Up",
                                 getOpportunities(),
                                 forEachController(
@@ -48,9 +51,7 @@ public class CleanUpTeardownThreadGroup {
 
     private DslHttpSampler getOpportunities() {
         return httpSampler("GET Opportunities",
-                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Opportunity+WHERE+OwnerId='005gK00000AQ0ppQAD'")
-                .header("Authorization",
-                        "Bearer ${__P(ACCESS_TOKEN,)}")
+                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Opportunity+WHERE+OwnerId='${ownerId}'")
                 .children(
                         jsonExtractor("opportunityId",
                                 "records[*].Id")
@@ -66,8 +67,6 @@ public class CleanUpTeardownThreadGroup {
         return httpSampler("DELETE Opportunity",
                 "https://${BASE_URL}/services/data/v60.0/sobjects/Opportunity/${currentOpportunityId}")
                 .method(HTTPConstants.DELETE)
-                .header("Authorization",
-                        "Bearer ${__P(ACCESS_TOKEN,)}")
                 .children(
                         responseAssertion()
                                 .fieldToTest(TargetField.RESPONSE_CODE)
@@ -77,9 +76,7 @@ public class CleanUpTeardownThreadGroup {
 
     private DslHttpSampler getAccounts() {
         return httpSampler("GET Accounts",
-                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Account+WHERE+OwnerId='005gK00000AQ0ppQAD'")
-                .header("Authorization",
-                        "Bearer ${__P(ACCESS_TOKEN,)}")
+                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Account+WHERE+OwnerId='${ownerId}'")
                 .children(
                         jsonExtractor("accountId",
                                 "records[*].Id")
@@ -95,8 +92,6 @@ public class CleanUpTeardownThreadGroup {
         return httpSampler("DELETE Account",
                 "https://${BASE_URL}/services/data/v60.0/sobjects/Account/${currentAccountId}")
                 .method(HTTPConstants.DELETE)
-                .header("Authorization",
-                        "Bearer ${__P(ACCESS_TOKEN,)}")
                 .children(
                         responseAssertion()
                                 .fieldToTest(TargetField.RESPONSE_CODE)
@@ -106,9 +101,7 @@ public class CleanUpTeardownThreadGroup {
 
     private DslHttpSampler getLeads() {
         return httpSampler("GET Leads",
-                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead+WHERE+OwnerId='005gK00000AQ0ppQAD'")
-                .header("Authorization",
-                        "Bearer ${__P(ACCESS_TOKEN,)}")
+                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead+WHERE+OwnerId='${ownerId}'")
                 .children(
                         jsonExtractor("leadId",
                                 "records[*].Id")
@@ -124,8 +117,6 @@ public class CleanUpTeardownThreadGroup {
         return httpSampler("DELETE Lead",
                 "https://${BASE_URL}/services/data/v60.0/sobjects/Lead/${currentLeadId}")
                 .method(HTTPConstants.DELETE)
-                .header("Authorization",
-                        "Bearer ${__P(ACCESS_TOKEN,)}")
                 .children(
                         responseAssertion()
                                 .fieldToTest(TargetField.RESPONSE_CODE)
