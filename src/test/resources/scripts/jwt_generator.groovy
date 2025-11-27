@@ -16,8 +16,14 @@ def CURRENT_TIME = System.currentTimeMillis() / 1000L;
 def EXPIRATION_TIME = CURRENT_TIME + 300L; // Token expires in 5 minutes (300 seconds)
 
 
-
 // --- Key Content Retrieval Logic ---
+/**
+ * Retrieves the Private Key content.
+ * If running on CI, it gets the Base64-encoded key from the JMeter property.
+ * If running locally, it reads the plain text key content from the file path.
+ * * NOTE: The raw Base64 content from CI is returned here, 
+ * and the decoding is handled later in the main script body.
+ */
 def getPrivateKeyContent() {
     // Define property and environment variable names for clarity
     def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
@@ -27,7 +33,9 @@ def getPrivateKeyContent() {
     def content = props.get(CI_CONTENT_PROPERTY);
 
     if (content != null && !content.isEmpty()) {
-        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY)");
+        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming Base64 encoded.");
+        // We return the raw Base64 string from the CI secret here.
+        // It will be decoded and cleaned in Section 3.
         return content;
     }
     
@@ -37,7 +45,8 @@ def getPrivateKeyContent() {
     if (keyPath != null && !keyPath.isEmpty()) {
         def keyFile = new File(keyPath);
         if (keyFile.exists()) {
-            log.info("Key source: Local file path ($LOCAL_PATH_ENV_VAR)");
+            log.info("Key source: Local file path ($LOCAL_PATH_ENV_VAR) - Assuming plain text content.");
+            // Returns the multi-line plain text content (not Base64)
             return keyFile.getText("UTF-8");
         } else {
             throw new Exception("ERROR: Private key file not found at path: " + keyPath);
@@ -72,9 +81,12 @@ def tokenToSign = "${encodedHeader}.${encodedPayload}"
 // 3. SIGNATURE (RSA with SHA-256)
 // --------------------------------------------------------
 
-def keyContent = getPrivateKeyContent(); // <-- Call the new retrieval function
+def keyContent = getPrivateKeyContent(); // <-- Gets the key content (raw Base64 from CI, or plain text from file)
 
-// Aggressive cleaning: Remove headers, footers, and all whitespace characters.
+// If the content is coming from the CI secret (raw Base64), it will be a clean single line.
+// If the content is coming from a local file, it will contain headers/footers/newlines.
+// This cleaning process works in both cases: it removes headers/footers/newlines 
+// from the plain text file, or simply removes extra whitespace from the raw Base64 string.
 keyContent = keyContent
   .replaceAll("-----BEGIN PRIVATE KEY-----", "")
   .replaceAll("-----END PRIVATE KEY-----", "")
@@ -82,24 +94,32 @@ keyContent = keyContent
   .replaceAll("\\n", "") 
   .replaceAll("\\r", ""); 
 
-// Decode the clean Base64 content
-def keySpec = new PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(keyContent));
+// Decode the clean Base64 content into bytes for PKCS8EncodedKeySpec
+// Since the key is ALWAYS treated as Base64 encoded (after cleaning/reading the raw B64 value),
+// we apply the standard decoder here.
+try {
+    def keySpec = new PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(keyContent));
 
-def keyFactory = KeyFactory.getInstance("RSA");
-def privateKey = keyFactory.generatePrivate(keySpec);
+    def keyFactory = KeyFactory.getInstance("RSA");
+    def privateKey = keyFactory.generatePrivate(keySpec);
 
-// Sign the token
-def signer = Signature.getInstance("SHA256withRSA");
-signer.initSign(privateKey);
-signer.update(tokenToSign.getBytes("UTF-8"));
-def signatureBytes = signer.sign();
+    // Sign the token
+    def signer = Signature.getInstance("SHA256withRSA");
+    signer.initSign(privateKey);
+    signer.update(tokenToSign.getBytes("UTF-8"));
+    def signatureBytes = signer.sign();
 
-// --------------------------------------------------------
-// 4. FINAL JWT CREATION AND VARIABLE ASSIGNMENT
-// --------------------------------------------------------
+    // --------------------------------------------------------
+    // 4. FINAL JWT CREATION AND VARIABLE ASSIGNMENT
+    // --------------------------------------------------------
 
-def encodedSignature = encoder.encodeToString(signatureBytes);
-def finalJWT = "${tokenToSign}.${encodedSignature}";
+    def encodedSignature = encoder.encodeToString(signatureBytes);
+    def finalJWT = "${tokenToSign}.${encodedSignature}";
 
-// Assign the complete JWT to a JMeter variable for use in the HTTP Request
-vars.put("JWT_ASSERTION", finalJWT);
+    // Assign the complete JWT to a JMeter variable for use in the HTTP Request
+    vars.put("JWT_ASSERTION", finalJWT);
+
+} catch (Exception e) {
+    log.error("ERROR during JWT key decoding or signing: " + e.getMessage());
+    throw new Exception("JWT Generation Failed: Check Private Key format and Base64 encoding. Error: " + e.getMessage());
+}
