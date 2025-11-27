@@ -25,8 +25,8 @@ def getPrivateKeyContent() {
 
     if (content != null && !content.isEmpty()) {
         log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming Base64 encoded.");
-        log.info("Key length: " + vars.get("SALESFORCE_PRIVATE_KEY").length());
-        log.info("Key starts with: " + vars.get("SALESFORCE_PRIVATE_KEY").substring(0, 20));
+        log.info("Key length: " + content.length());
+        log.info("Key starts with: " + content.substring(0, 20));
         return content;
     }
     
