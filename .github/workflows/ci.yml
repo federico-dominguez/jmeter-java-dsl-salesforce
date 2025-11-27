@@ -29,14 +29,20 @@ jobs:
           mkdir -p target/artifacts
 
       - name: Build and run tests 🔑
+        env:
+          SALESFORCE_PRIVATE_KEY : ${{ secrets.SALESFORCE_PRIVATE_KEY }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          SALESFORCE_USERNAME: ${{ secrets.SALESFORCE_USERNAME }}
+          AUDIENCE: ${{ secrets.AUDIENCE }}
         run: |
-          mvn -B -V test \
-            -DSALESFORCE_PRIVATE_KEY="${{ secrets.SALESFORCE_PRIVATE_KEY }}"
+          # The application now reads these via System.getenv()
+          mvn -B -V test
 
       - name: Package JTLs
         if: always()
         run: |
           if [ -d target/jtls ] && [ "$(ls -A target/jtls)" ]; then
+            # Changed run_id variable reference slightly for clarity if it was needed
             zip -r target/artifacts/jtls-results-${{ github.run_id }}.zip target/jtls
             echo "Created target/artifacts/jtls-results-${{ github.run_id }}.zip"
           else

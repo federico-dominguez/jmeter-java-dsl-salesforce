@@ -22,6 +22,14 @@ public class PerformanceTest {
         LeadToCashThreadGroup leadToCashGroup = new LeadToCashThreadGroup();
         CleanUpTeardownThreadGroup cleanUpGroup = new CleanUpTeardownThreadGroup();
 
+        public static void main(String[] args) {
+                try {
+                        new PerformanceTest().getTestPlan().children(new DslViewResultsTree()).run();
+                } catch (IOException e) {
+                        e.printStackTrace();
+                }
+        }
+
         @Test
         public void test() throws IOException {
                 TestPlanStats stats = getTestPlan().children(

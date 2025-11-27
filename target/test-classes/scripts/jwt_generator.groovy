@@ -8,36 +8,27 @@ import java.util.Base64
 // 1. CONFIGURATION
 // --------------------------------------------------------
 
-def CLIENT_ID = "3MVG9rZjd7MXFdLg_QQqBX7kDdLAAvhL1zIxwugJa6S56L94nPzq9vLbGSONrYtARPhCX0iBH6771WgYTm3ax" 
-def USERNAME = "sdominguez.federico718@agentforce.com"
-def AUDIENCE = "https://orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com" 
+def CLIENT_ID = System.getenv("CLIENT_ID") 
+def USERNAME = System.getenv("SALESFORCE_USERNAME")
+def AUDIENCE = System.getenv("AUDIENCE")
 def ALGORITHM = "RS256"
 def CURRENT_TIME = System.currentTimeMillis() / 1000L;
 def EXPIRATION_TIME = CURRENT_TIME + 300L; 
 
+log.info("Client ID: " + CLIENT_ID);
 
 def getPrivateKeyContent() {
 
     def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
     def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
 
-    def content = System.getProperty(CI_CONTENT_PROPERTY);
+    def content = System.getenv(CI_CONTENT_PROPERTY);
 
     if (content != null && !content.isEmpty()) {
         log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
-        
-        // >>>>> NEW STEP REQUIRED HERE <<<<<
-        // The *input* is Base64 encoded, but the *output* of this function needs to be the RAW PEM string (plain text)
-        // so the main script can clean it and decode it *again*.
-
-        // Use a standard decoder to turn the input string into a raw String of the PEM content
         byte[] decodedBytes = Base64.getDecoder().decode(content);
         String rawPemContent = new String(decodedBytes, "UTF-8");
-
-        log.info("Decoded raw PEM content length: " + rawPemContent.length());
-        log.info("Decoded raw PEM content starts with: " + rawPemContent.substring(0, 20));
-        
-        return rawPemContent; // Return the plain text PEM string
+        return rawPemContent;
     }
     
     // 2. Fallback: Attempt to get path from local environment variable
