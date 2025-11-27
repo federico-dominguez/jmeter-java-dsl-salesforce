@@ -31,7 +31,7 @@ jobs:
       - name: Build and run tests 🔑
         # Inject the GitHub Secret content directly as a JMeter Property via -D.
         # This property is read by the Groovy script using 'props.get("PRIVATE_KEY_CONTENT")'.
-        run: mvn -B -V test -DPRIVATE_KEY_CONTENT="${{ secrets.SALESFORCE_PRIVATE_KEY }}" 
+        run: mvn -B -V test -DSALESFORCE_PRIVATE_KEY="${{ secrets.SALESFORCE_PRIVATE_KEY }}"
 
       - name: Package JTLs
         if: always()
