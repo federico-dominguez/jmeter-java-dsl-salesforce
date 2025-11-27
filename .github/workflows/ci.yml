@@ -28,8 +28,10 @@ jobs:
           rm -rf target/artifacts || true
           mkdir -p target/artifacts
 
-      - name: Build and run tests
-        run: mvn -B -V test
+      - name: Build and run tests 🔑
+        run: |
+          mvn -B -V test \
+            -DSALESFORCE_PRIVATE_KEY="${{ secrets.SALESFORCE_PRIVATE_KEY }}"
 
       - name: Package JTLs
         if: always()

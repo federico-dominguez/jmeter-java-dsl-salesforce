@@ -1,3 +1,9 @@
+import java.io.File
+import java.security.KeyFactory
+import java.security.Signature
+import java.security.spec.PKCS8EncodedKeySpec
+import java.util.Base64
+
 // --------------------------------------------------------
 // 1. CONFIGURATION
 // --------------------------------------------------------
@@ -5,10 +11,52 @@
 def CLIENT_ID = "3MVG9rZjd7MXFdLg_QQqBX7kDdLAAvhL1zIxwugJa6S56L94nPzq9vLbGSONrYtARPhCX0iBH6771WgYTm3ax" 
 def USERNAME = "sdominguez.federico718@agentforce.com"
 def AUDIENCE = "https://orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com" 
-def PRIVATE_KEY_PATH = "src/main/resources/config/server.key" 
 def ALGORITHM = "RS256"
 def CURRENT_TIME = System.currentTimeMillis() / 1000L;
-def EXPIRATION_TIME = CURRENT_TIME + 300L; // Token expires in 5 minutes (300 seconds)
+def EXPIRATION_TIME = CURRENT_TIME + 300L; 
+
+
+def getPrivateKeyContent() {
+
+    def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
+    def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
+
+    def content = System.getProperty(CI_CONTENT_PROPERTY);
+
+    if (content != null && !content.isEmpty()) {
+        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
+        
+        // >>>>> NEW STEP REQUIRED HERE <<<<<
+        // The *input* is Base64 encoded, but the *output* of this function needs to be the RAW PEM string (plain text)
+        // so the main script can clean it and decode it *again*.
+
+        // Use a standard decoder to turn the input string into a raw String of the PEM content
+        byte[] decodedBytes = Base64.getDecoder().decode(content);
+        String rawPemContent = new String(decodedBytes, "UTF-8");
+
+        log.info("Decoded raw PEM content length: " + rawPemContent.length());
+        log.info("Decoded raw PEM content starts with: " + rawPemContent.substring(0, 20));
+        
+        return rawPemContent; // Return the plain text PEM string
+    }
+    
+    // 2. Fallback: Attempt to get path from local environment variable
+    def keyPath = System.getenv(LOCAL_PATH_ENV_VAR);
+
+    if (keyPath != null && !keyPath.isEmpty()) {
+        def keyFile = new File(keyPath);
+        if (keyFile.exists()) {
+            log.info("Key source: Local file path ($LOCAL_PATH_ENV_VAR) - Assuming plain text content.");
+            return keyFile.getText("UTF-8");
+        } else {
+            throw new Exception("ERROR: Private key file not found at path: " + keyPath);
+        }
+    }
+    
+    // 3. Failure
+    throw new Exception("ERROR: Private key content missing! Set property '$CI_CONTENT_PROPERTY' (CI) or environment variable '$LOCAL_PATH_ENV_VAR' (local).");
+}
+
 
 // --------------------------------------------------------
 // 2. PAYLOAD CREATION AND ENCODING (JWS Header)
@@ -32,42 +80,36 @@ def tokenToSign = "${encodedHeader}.${encodedPayload}"
 // 3. SIGNATURE (RSA with SHA-256)
 // --------------------------------------------------------
 
-def keyContent = new File(PRIVATE_KEY_PATH).getText("UTF-8");
+def keyContent = getPrivateKeyContent(); 
 
-// Aggressive cleaning: Remove headers, footers, and all whitespace characters.
 keyContent = keyContent
-        .replaceAll("-----BEGIN PRIVATE KEY-----", "")
-        .replaceAll("-----END PRIVATE KEY-----", "")
-        .replaceAll("\\s", "") 
-        .replaceAll("\\n", "") 
-        .replaceAll("\\r", ""); 
+  .replaceAll("-----BEGIN PRIVATE KEY-----", "")
+  .replaceAll("-----END PRIVATE KEY-----", "")
+  .replaceAll("\\s", "") 
+  .replaceAll("\\n", "") 
+  .replaceAll("\\r", ""); 
 
-// Decode the clean Base64 content
-def keySpec = new PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(keyContent));
+try {
+    def keySpec = new PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(keyContent));
 
-def keyFactory = KeyFactory.getInstance("RSA");
-def privateKey = keyFactory.generatePrivate(keySpec);
+    def keyFactory = KeyFactory.getInstance("RSA");
+    def privateKey = keyFactory.generatePrivate(keySpec);
 
-// Sign the token
-def signer = Signature.getInstance("SHA256withRSA");
-signer.initSign(privateKey);
-signer.update(tokenToSign.getBytes("UTF-8"));
-def signatureBytes = signer.sign();
+    def signer = Signature.getInstance("SHA256withRSA");
+    signer.initSign(privateKey);
+    signer.update(tokenToSign.getBytes("UTF-8"));
+    def signatureBytes = signer.sign();
 
-// --------------------------------------------------------
-// 4. FINAL JWT CREATION AND VARIABLE ASSIGNMENT
-// --------------------------------------------------------
+    // --------------------------------------------------------
+    // 4. FINAL JWT CREATION AND VARIABLE ASSIGNMENT
+    // --------------------------------------------------------
 
-def encodedSignature = encoder.encodeToString(signatureBytes);
-def finalJWT = "${tokenToSign}.${encodedSignature}";
+    def encodedSignature = encoder.encodeToString(signatureBytes);
+    def finalJWT = "${tokenToSign}.${encodedSignature}";
 
-// Assign the complete JWT to a JMeter variable for use in the HTTP Request
-vars.put("JWT_ASSERTION", finalJWT);
+    vars.put("JWT_ASSERTION", finalJWT);
 
-//log.info("Successfully generated JWT: " + finalJWT); 
-
-import java.io.File
-import java.security.KeyFactory
-import java.security.Signature
-import java.security.spec.PKCS8EncodedKeySpec
-import java.util.Base64
+} catch (Exception e) {
+    log.error("ERROR during JWT key decoding or signing: " + e.getMessage());
+    throw new Exception("JWT Generation Failed: Check Private Key format and Base64 encoding. Error: " + e.getMessage());
+}

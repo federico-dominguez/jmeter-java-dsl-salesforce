@@ -1,0 +1,17 @@
+// Archivo: .vscode/launch.json (CORREGIDO)
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug JMeter D-DSL Test",
+            "request": "launch",
+            "mainClass": "com.fedd.salesforce.PerformanceTest",
+            "projectName": "jmeter-java-dsl-salesforce",
+            "vmArgs": [
+                "-DPRIVATE_KEY_PATH=C:\\Users\\Fede\\server.key" 
+            ],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
