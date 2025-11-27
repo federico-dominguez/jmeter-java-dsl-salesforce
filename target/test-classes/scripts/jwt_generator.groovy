@@ -24,10 +24,20 @@ def getPrivateKeyContent() {
     def content = System.getProperty(CI_CONTENT_PROPERTY);
 
     if (content != null && !content.isEmpty()) {
-        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming Base64 encoded.");
-        log.info("Key length: " + content.length());
-        log.info("Key starts with: " + content.substring(0, 20));
-        return content;
+        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
+        
+        // >>>>> NEW STEP REQUIRED HERE <<<<<
+        // The *input* is Base64 encoded, but the *output* of this function needs to be the RAW PEM string (plain text)
+        // so the main script can clean it and decode it *again*.
+
+        // Use a standard decoder to turn the input string into a raw String of the PEM content
+        byte[] decodedBytes = Base64.getDecoder().decode(content);
+        String rawPemContent = new String(decodedBytes, "UTF-8");
+
+        log.info("Decoded raw PEM content length: " + rawPemContent.length());
+        log.info("Decoded raw PEM content starts with: " + rawPemContent.substring(0, 20));
+        
+        return rawPemContent; // Return the plain text PEM string
     }
     
     // 2. Fallback: Attempt to get path from local environment variable
