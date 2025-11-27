@@ -30,7 +30,7 @@ jobs:
 
       - name: Build and run tests 🔑
         env:
-          PRIVATE_KEY_PATH: ${{ secrets.PRIVATE_KEY_PATH }}
+          SALESFORCE_PRIVATE_KEY : ${{ secrets.SALESFORCE_PRIVATE_KEY }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           SALESFORCE_USERNAME: ${{ secrets.SALESFORCE_USERNAME }}
           AUDIENCE: ${{ secrets.AUDIENCE }}
