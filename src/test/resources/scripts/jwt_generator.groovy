@@ -20,14 +20,14 @@ def EXPIRATION_TIME = CURRENT_TIME + 300L; // Token expires in 5 minutes (300 se
 // --- Key Content Retrieval Logic ---
 def getPrivateKeyContent() {
     // Define property and environment variable names for clarity
-    def CI_CONTENT_PROPERTY = "PRIVATE_KEY_CONTENT"
+    def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
     def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
 
     // 1. Attempt to get content directly from JMeter property (used by CI pipeline)
     def content = props.get(CI_CONTENT_PROPERTY);
 
     if (content != null && !content.isEmpty()) {
-        log.info("Key source: CI property (PRIVATE_KEY_CONTENT)");
+        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY)");
         return content;
     }
     
