@@ -22,7 +22,7 @@ def getPrivateKeyContent() {
     def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
     def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
 
-    def content = System.getProperty(CI_CONTENT_PROPERTY);
+    def content = System.getenv(CI_CONTENT_PROPERTY);
 
     if (content != null && !content.isEmpty()) {
         log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
