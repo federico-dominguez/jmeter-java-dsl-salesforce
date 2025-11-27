@@ -30,7 +30,7 @@ def getPrivateKeyContent() {
     def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
 
     // 1. Attempt to get content directly from JMeter property (used by CI pipeline)
-    def content = props.get(CI_CONTENT_PROPERTY);
+    def content = System.getProperty(CI_CONTENT_PROPERTY);
 
     if (content != null && !content.isEmpty()) {
         log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming Base64 encoded.");
