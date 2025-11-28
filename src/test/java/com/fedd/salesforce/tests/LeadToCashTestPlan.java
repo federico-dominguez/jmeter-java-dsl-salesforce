@@ -37,8 +37,9 @@ public class LeadToCashTestPlan {
                         httpCookies()
                                 .disable(),
                         authGroup.getSetupThreadGroup(),
-                        leadToCashGroup.getLeadToCashThreadGroup(1,1),
-                        cleanUpGroup.getTeardownThreadGroup());
+                        leadToCashGroup.getLeadToCashThreadGroup(10,1)
+                        ,cleanUpGroup.getTeardownThreadGroup()
+                );
 
     }
 }
