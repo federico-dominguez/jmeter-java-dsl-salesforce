@@ -15,47 +15,49 @@ import us.abstracta.jmeter.javadsl.core.controllers.DslTransactionController;
 import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsonExtractor.JsonQueryLanguage;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 
-public class NoteService {
-        public DslHttpSampler getNotes() {
-                return httpSampler("GET Notes",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Note+WHERE+OwnerId='${ownerId}'")
+public class TaskService {
+        public DslHttpSampler getTasks() {
+                return httpSampler("GET Tasks",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Task+WHERE+OwnerId='${ownerId}'")
                                 .children(
-                                                jsonExtractor("noteId",
+                                                jsonExtractor("taskId",
                                                                 "records[*].Id")
                                                                 .matchNumber(-1)
-                                                                .defaultValue("noteId_NOT_FOUND"),
+                                                                .defaultValue("taskId_NOT_FOUND"),
                                                 jsonAssertion("Success Assertion",
                                                                 "$.done")
                                                                 .queryLanguage(JsonQueryLanguage.JSON_PATH)
                                                                 .equalsToJson("true"));
         }
 
-        public DslHttpSampler createNote() {
-                return httpSampler("CREATE New Note",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Note/")
+        public DslHttpSampler createTask() {
+                return httpSampler("CREATE New Task",
+                                "https://${BASE_URL}/services/data/v60.0/sobjects/Task/")
                                 .post("""
                                                 {
-                                                 "Body": "Meeting notes for ${p_lastname}",
-                                                 "IsPrivate": "false",
+                                                 "ActivityDate": "${__timeShift(yyyy-MM-dd,,,,P1D)}",
                                                  "OwnerId": "${ownerId}",
-                                                 "ParentId": "${leadId}",
-                                                 "Title": "Meeting Notes"
+                                                 "WhoId": "${leadId}",
+                                                 "Priority": "Normal",
+                                                 "Status": "Not Started",
+                                                 "Subject": "Call",
+                                                 "TaskSubtype": "Task"
                                                 }
                                                 """,
                                                 ContentType.APPLICATION_JSON)
                                 .children(
-                                                jsonExtractor("noteId",
+                                                jsonExtractor("taskId",
                                                                 "id")
-                                                                .defaultValue("noteId_NOT_FOUND"),
+                                                                .defaultValue("taskId_NOT_FOUND"),
                                                 jsonAssertion("Success Assertion",
                                                                 "$.success")
                                                                 .queryLanguage(JsonQueryLanguage.JSON_PATH)
                                                                 .equalsToJson("true"));
         }
 
-        public DslHttpSampler deleteNote() {
-                return httpSampler("DELETE Note",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Note/${currentNoteId}")
+        public DslHttpSampler deleteTask() {
+                return httpSampler("DELETE Task",
+                                "https://${BASE_URL}/services/data/v60.0/sobjects/Task/${currentTaskId}")
                                 .method(HTTPConstants.DELETE)
                                 .children(
                                                 responseAssertion()
@@ -64,13 +66,12 @@ public class NoteService {
                                                                                 "204"));
         }
 
-        public DslTransactionController deleteAllNotes() {
-                return transaction("Notes Clean Up",
-                                getNotes(),
-                                forEachController(
-                                                "ForEach NoteId",
-                                                "noteId",
-                                                "currentNoteId",
-                                                deleteNote()));
+        public DslTransactionController deleteAllTasks() {
+                return transaction("Task Clean Up",
+                                getTasks(),
+                                forEachController("ForEach TaskId",
+                                                "taskId",
+                                                "currentTaskId",
+                                                deleteTask()));
         }
 }
