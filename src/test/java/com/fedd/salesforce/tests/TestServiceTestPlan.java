@@ -37,8 +37,9 @@ public class TestServiceTestPlan {
                         httpCookies()
                                 .disable(),
                         authGroup.getSetupThreadGroup(),
-                        testServiceGroup.getServiceThreadGroup(1, 1),
-                        cleanUpGroup.getTeardownThreadGroup());
+                        testServiceGroup.getServiceThreadGroup(1, 1)
+                        //,cleanUpGroup.getTeardownThreadGroup()
+                );
 
     }
 
