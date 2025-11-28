@@ -1,38 +1,38 @@
-package com.fedd.salesforce;
+package com.fedd.salesforce.services;
 
-import static us.abstracta.jmeter.javadsl.JmeterDsl.httpHeaders;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonAssertion;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsr223PostProcessor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.regexExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.responseAssertion;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.threadGroup;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
 
 import org.apache.http.entity.ContentType;
 import org.apache.jmeter.protocol.http.util.HTTPConstants;
 
 import us.abstracta.jmeter.javadsl.core.assertions.DslResponseAssertion.TargetField;
 import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsonExtractor.JsonQueryLanguage;
-import us.abstracta.jmeter.javadsl.core.threadgroups.DslDefaultThreadGroup;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 
-public class LeadToCashThreadGroup {
-        public DslDefaultThreadGroup getLeadToCashThreadGroup() {
-                return threadGroup("Lead to Cash", 1, 1,
-                                // uniformRandomTimer(Duration.ofSeconds(4),
-                                // Duration.ofSeconds(10)),
-                                httpHeaders().header("Authorization",
-                                                "Bearer ${__P(ACCESS_TOKEN,)}"),
-                                transaction("Lead to Cash Process")
-                                                .generateParentSample(),
-                                createLead(),
-                                convertLead(),
-                                closeOpportunity());
-        }
+public class LeadService {
 
-        private DslHttpSampler createLead() {
+    public DslHttpSampler getLeads() {
+        return httpSampler("GET Leads",
+                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead+WHERE+OwnerId='${ownerId}'")
+                .children(
+                        jsonExtractor("leadId",
+                                "records[*].Id")
+                                .matchNumber(-1)
+                                .defaultValue("leadId_NOT_FOUND"),
+                        jsonAssertion("Success Assertion",
+                                "$.done")
+                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                .equalsToJson("true"));
+    }
+
+
+
+    public DslHttpSampler createLead() {
                 return httpSampler("CREATE New Lead",
                                 "https://${BASE_URL}/services/data/v60.0/sobjects/Lead/")
                                 .post("""
@@ -55,7 +55,7 @@ public class LeadToCashThreadGroup {
                                                                 .equalsToJson("true"));
         }
 
-        private DslHttpSampler convertLead() {
+        public DslHttpSampler convertLead() {
                 return httpSampler("UPDATE Lead to Close - Converted",
                                 "https://${BASE_URL}/services/Soap/c/60.0")
                                 .post("""
@@ -97,22 +97,14 @@ public class LeadToCashThreadGroup {
                                                                                 "<success>true</success>"));
         }
 
-        private DslHttpSampler closeOpportunity() {
-                return httpSampler("UPDATE Opportunity to Closed Won",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Opportunity/${opportunityId}")
-                                .method(HTTPConstants.PATCH)
-                                .contentType(ContentType.APPLICATION_JSON)
-                                .body("""
-                                                {
-                                                 "StageName": "Closed Won",
-                                                 "Amount": ${p_amount}
-                                                }
-                                                """)
-                                .children(
-                                                responseAssertion(
-                                                                "Response Code Assertion")
-                                                                .fieldToTest(TargetField.RESPONSE_CODE)
-                                                                .equalsToStrings(
-                                                                                "204"));
-        }
+        public DslHttpSampler deleteLead() {
+        return httpSampler("DELETE Lead",
+                "https://${BASE_URL}/services/data/v60.0/sobjects/Lead/${currentLeadId}")
+                .method(HTTPConstants.DELETE)
+                .children(
+                        responseAssertion()
+                                .fieldToTest(TargetField.RESPONSE_CODE)
+                                .equalsToStrings(
+                                        "204"));
+    }
 }

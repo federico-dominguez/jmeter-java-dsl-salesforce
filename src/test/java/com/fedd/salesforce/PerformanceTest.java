@@ -1,62 +1,26 @@
 package com.fedd.salesforce;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.csvDataSet;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCache;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jtlWriter;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.testPlan;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.vars;
 
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
-import us.abstracta.jmeter.javadsl.core.DslTestPlan;
+import com.fedd.salesforce.tests.LeadToCashTestPlan;
+
 import us.abstracta.jmeter.javadsl.core.TestPlanStats;
 import us.abstracta.jmeter.javadsl.core.listeners.DslViewResultsTree;
 
 public class PerformanceTest {
 
-        AuthenticationSetupThreadGroup authGroup = new AuthenticationSetupThreadGroup();
-        LeadToCashThreadGroup leadToCashGroup = new LeadToCashThreadGroup();
-        CleanUpTeardownThreadGroup cleanUpGroup = new CleanUpTeardownThreadGroup();
-
-        public static void main(String[] args) {
-                try {
-                        new PerformanceTest().getTestPlan().children(new DslViewResultsTree()).run();
-                } catch (IOException e) {
-                        e.printStackTrace();
-                }
-        }
+        private final LeadToCashTestPlan leadToCashTestPlan = new LeadToCashTestPlan();
 
         @Test
         public void test() throws IOException {
-                TestPlanStats stats = getTestPlan().children(
+                TestPlanStats stats = leadToCashTestPlan.getTestPlan().children(
                                 jtlWriter("target/jtls"), new DslViewResultsTree()).run();
                 assertThat(stats.overall().errorsCount()).isEqualTo(0L);
-        }
-
-        private DslTestPlan getTestPlan() throws IOException {
-                return testPlan()
-                                .children(
-                                                vars().set("BASE_URL",
-                                                                "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com")
-                                                                .set("ownerId", "005gK00000AQ0ppQAD"),
-                                                csvDataSet(
-                                                                "src/main/resources/data/leads_data.csv")
-                                                                .ignoreFirstLine()
-                                                                .variableNames("p_lastname", "p_company",
-                                                                                "p_email_prefix", "p_leadsource",
-                                                                                "p_amount"),
-                                                httpCache()
-                                                                .disable(),
-                                                httpCookies()
-                                                                .disable(),
-                                                authGroup.getSetupThreadGroup(),
-                                                leadToCashGroup.getLeadToCashThreadGroup(),
-                                                cleanUpGroup.getTeardownThreadGroup());
-
         }
 
 }
