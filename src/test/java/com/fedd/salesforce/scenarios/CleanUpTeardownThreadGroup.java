@@ -7,6 +7,7 @@ import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
 
 import com.fedd.salesforce.services.AccountService;
 import com.fedd.salesforce.services.LeadService;
+import com.fedd.salesforce.services.NoteService;
 import com.fedd.salesforce.services.OpportunityService;
 
 import us.abstracta.jmeter.javadsl.core.threadgroups.DslTeardownThreadGroup;
@@ -16,6 +17,7 @@ public class CleanUpTeardownThreadGroup {
         private final LeadService leadService = new LeadService();
         private final AccountService accountService = new AccountService();
         private final OpportunityService opportunityService = new OpportunityService();
+        private final NoteService noteService = new NoteService();
 
         public DslTeardownThreadGroup getTeardownThreadGroup() {
                 return teardownThreadGroup("Clean up")
@@ -23,6 +25,16 @@ public class CleanUpTeardownThreadGroup {
                                                 httpHeaders()
                                                                 .header("Authorization",
                                                                                 "Bearer ${__P(ACCESS_TOKEN,)}"),
+                                                transaction("Notes Clean Up",
+                                                                noteService.getNotes(),
+                                                                forEachController(
+                                                                                "ForEach NoteId",
+                                                                                "noteId",
+                                                                                "currentNoteId",
+                                                                                noteService
+                                                                                                .deleteNote())),
+
+
                                                 transaction("Opportunities Clean Up",
                                                                 opportunityService.getOpportunities(),
                                                                 forEachController(
