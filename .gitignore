@@ -1,4 +1,15 @@
 .vscode/launch.json
-.vscode/settings.jsontarget/
+.vscode/settings.json
+target/
 *.jtl
+*.class
+*.jar
+*.log
+*.keystore
+*.p12
+*.pem
+*.key
 .vscode/launch.json
+.vscode/.history/
+.idea/
+.DS_Store
