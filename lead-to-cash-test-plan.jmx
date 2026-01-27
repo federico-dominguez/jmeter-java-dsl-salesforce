@@ -1,0 +1,1251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan">
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="BASE_URL" elementType="Argument">
+            <stringProp name="Argument.name">BASE_URL</stringProp>
+            <stringProp name="Argument.value">orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="ownerId" elementType="Argument">
+            <stringProp name="Argument.name">ownerId</stringProp>
+            <stringProp name="Argument.value">005gK00000AQ0ppQAD</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </Arguments>
+      <hashTree/>
+      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV Data Set Config" enabled="true">
+        <stringProp name="delimiter">,</stringProp>
+        <stringProp name="fileEncoding">UTF-8</stringProp>
+        <stringProp name="filename">src/main/resources/data/leads_data.csv</stringProp>
+        <boolProp name="ignoreFirstLine">true</boolProp>
+        <boolProp name="quotedData">true</boolProp>
+        <boolProp name="recycle">true</boolProp>
+        <stringProp name="shareMode">shareMode.all</stringProp>
+        <boolProp name="stopThread">false</boolProp>
+        <stringProp name="variableNames">p_lastname,p_company,p_email_prefix,p_leadsource,p_amount</stringProp>
+      </CSVDataSet>
+      <hashTree/>
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="Authentication" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Authentication">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Authentication">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+            <stringProp name="HTTPSampler.path">/services/oauth2/token</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="grant_type" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">true</boolProp>
+                  <stringProp name="Argument.name">grant_type</stringProp>
+                  <stringProp name="Argument.value">urn:ietf:params:oauth:grant-type:jwt-bearer</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                </elementProp>
+                <elementProp name="assertion" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">true</boolProp>
+                  <stringProp name="Argument.name">assertion</stringProp>
+                  <stringProp name="Argument.value">${JWT_ASSERTION}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JWT Generator">
+              <stringProp name="cacheKey">true</stringProp>
+              <stringProp name="filename"></stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script">import java.io.File&#xd;
+import java.security.KeyFactory&#xd;
+import java.security.Signature&#xd;
+import java.security.spec.PKCS8EncodedKeySpec&#xd;
+import java.util.Base64&#xd;
+&#xd;
+// --------------------------------------------------------&#xd;
+// 1. CONFIGURATION&#xd;
+// --------------------------------------------------------&#xd;
+&#xd;
+def CLIENT_ID = System.getenv(&quot;CLIENT_ID&quot;) &#xd;
+def USERNAME = System.getenv(&quot;SALESFORCE_USERNAME&quot;)&#xd;
+def AUDIENCE = System.getenv(&quot;AUDIENCE&quot;)&#xd;
+def ALGORITHM = &quot;RS256&quot;&#xd;
+def CURRENT_TIME = System.currentTimeMillis() / 1000L;&#xd;
+def EXPIRATION_TIME = CURRENT_TIME + 300L; &#xd;
+&#xd;
+log.info(&quot;Client ID: &quot; + CLIENT_ID);&#xd;
+&#xd;
+def getPrivateKeyContent() {&#xd;
+&#xd;
+    def CI_CONTENT_PROPERTY = &quot;SALESFORCE_PRIVATE_KEY&quot;&#xd;
+    def LOCAL_PATH_ENV_VAR = &quot;PRIVATE_KEY_PATH&quot;&#xd;
+&#xd;
+    def content = System.getenv(CI_CONTENT_PROPERTY);&#xd;
+&#xd;
+    if (content != null &amp;&amp; !content.isEmpty()) {&#xd;
+        log.info(&quot;Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.&quot;);&#xd;
+        byte[] decodedBytes = Base64.getDecoder().decode(content);&#xd;
+        String rawPemContent = new String(decodedBytes, &quot;UTF-8&quot;);&#xd;
+        return rawPemContent;&#xd;
+    }&#xd;
+    &#xd;
+    // 2. Fallback: Attempt to get path from local environment variable&#xd;
+    def keyPath = System.getenv(LOCAL_PATH_ENV_VAR);&#xd;
+&#xd;
+    if (keyPath != null &amp;&amp; !keyPath.isEmpty()) {&#xd;
+        def keyFile = new File(keyPath);&#xd;
+        if (keyFile.exists()) {&#xd;
+            log.info(&quot;Key source: Local file path ($LOCAL_PATH_ENV_VAR) - Assuming plain text content.&quot;);&#xd;
+            return keyFile.getText(&quot;UTF-8&quot;);&#xd;
+        } else {&#xd;
+            throw new Exception(&quot;ERROR: Private key file not found at path: &quot; + keyPath);&#xd;
+        }&#xd;
+    }&#xd;
+    &#xd;
+    // 3. Failure&#xd;
+    throw new Exception(&quot;ERROR: Private key content missing! Set property &apos;$CI_CONTENT_PROPERTY&apos; (CI) or environment variable &apos;$LOCAL_PATH_ENV_VAR&apos; (local).&quot;);&#xd;
+}&#xd;
+&#xd;
+&#xd;
+// --------------------------------------------------------&#xd;
+// 2. PAYLOAD CREATION AND ENCODING (JWS Header)&#xd;
+// --------------------------------------------------------&#xd;
+&#xd;
+def header = &quot;&quot;&quot;{&quot;alg&quot;:&quot;${ALGORITHM}&quot;,&quot;typ&quot;:&quot;JWT&quot;}&quot;&quot;&quot;&#xd;
+def payload = &quot;&quot;&quot;{&#xd;
+  &quot;iss&quot;:&quot;${CLIENT_ID}&quot;,&#xd;
+  &quot;sub&quot;:&quot;${USERNAME}&quot;,&#xd;
+  &quot;aud&quot;:&quot;${AUDIENCE}&quot;,&#xd;
+  &quot;exp&quot;:${EXPIRATION_TIME}&#xd;
+}&quot;&quot;&quot;&#xd;
+&#xd;
+def encoder = Base64.getUrlEncoder().withoutPadding()&#xd;
+def encodedHeader = encoder.encodeToString(header.getBytes(&quot;UTF-8&quot;))&#xd;
+def encodedPayload = encoder.encodeToString(payload.getBytes(&quot;UTF-8&quot;))&#xd;
+&#xd;
+def tokenToSign = &quot;${encodedHeader}.${encodedPayload}&quot;&#xd;
+&#xd;
+// --------------------------------------------------------&#xd;
+// 3. SIGNATURE (RSA with SHA-256)&#xd;
+// --------------------------------------------------------&#xd;
+&#xd;
+def keyContent = getPrivateKeyContent(); &#xd;
+&#xd;
+keyContent = keyContent&#xd;
+  .replaceAll(&quot;-----BEGIN PRIVATE KEY-----&quot;, &quot;&quot;)&#xd;
+  .replaceAll(&quot;-----END PRIVATE KEY-----&quot;, &quot;&quot;)&#xd;
+  .replaceAll(&quot;\\s&quot;, &quot;&quot;) &#xd;
+  .replaceAll(&quot;\\n&quot;, &quot;&quot;) &#xd;
+  .replaceAll(&quot;\\r&quot;, &quot;&quot;); &#xd;
+&#xd;
+try {&#xd;
+    def keySpec = new PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(keyContent));&#xd;
+&#xd;
+    def keyFactory = KeyFactory.getInstance(&quot;RSA&quot;);&#xd;
+    def privateKey = keyFactory.generatePrivate(keySpec);&#xd;
+&#xd;
+    def signer = Signature.getInstance(&quot;SHA256withRSA&quot;);&#xd;
+    signer.initSign(privateKey);&#xd;
+    signer.update(tokenToSign.getBytes(&quot;UTF-8&quot;));&#xd;
+    def signatureBytes = signer.sign();&#xd;
+&#xd;
+    // --------------------------------------------------------&#xd;
+    // 4. FINAL JWT CREATION AND VARIABLE ASSIGNMENT&#xd;
+    // --------------------------------------------------------&#xd;
+&#xd;
+    def encodedSignature = encoder.encodeToString(signatureBytes);&#xd;
+    def finalJWT = &quot;${tokenToSign}.${encodedSignature}&quot;;&#xd;
+&#xd;
+    vars.put(&quot;JWT_ASSERTION&quot;, finalJWT);&#xd;
+&#xd;
+} catch (Exception e) {&#xd;
+    log.error(&quot;ERROR during JWT key decoding or signing: &quot; + e.getMessage());&#xd;
+    throw new Exception(&quot;JWT Generation Failed: Check Private Key format and Base64 encoding. Error: &quot; + e.getMessage());&#xd;
+}</stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PreProcessor>
+            <hashTree/>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor">
+              <stringProp name="JMESExtractor.referenceName">access_token</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">access_token</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">access_token_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="ACCESS_TOKEN Property">
+              <stringProp name="cacheKey">true</stringProp>
+              <stringProp name="filename"></stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script">props.put(&apos;ACCESS_TOKEN&apos;, vars.get(&apos;access_token&apos;))</stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PostProcessor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Access_token Assertion">
+              <stringProp name="JSON_PATH">$.access_token</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">true</boolProp>
+              <stringProp name="EXPECTED_VALUE">.*</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Token_type Assertion">
+              <stringProp name="JSON_PATH">$.token_type</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">Bearer</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Lead to Cash" enabled="true">
+        <intProp name="ThreadGroup.num_threads">10</intProp>
+        <intProp name="ThreadGroup.ramp_time">0</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="Authorization" elementType="Header">
+              <stringProp name="Header.name">Authorization</stringProp>
+              <stringProp name="Header.value">Bearer ${__P(ACCESS_TOKEN,)}</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Set Variables">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">// need to use CompoundVariable with string replacement to avoid generating incorrect groovy when expression resulting string contains groovy special characters (like apostrophes, new lines, etc).
+import org.apache.jmeter.engine.util.CompoundVariable
+
+vars.put(&apos;NOTE_CHANCE&apos;, new CompoundVariable(&apos;$#{__P(NOTE_CHANCE,65)}&apos;.replaceAll(&apos;([$#])#\\{&apos;, &apos;$1{&apos;)).execute())
+vars.put(&apos;TASK_CHANCE&apos;, new CompoundVariable(&apos;$#{__P(TASK_CHANCE,75)}&apos;.replaceAll(&apos;([$#])#\\{&apos;, &apos;$1{&apos;)).execute())
+vars.put(&apos;EVENT_CHANCE&apos;, new CompoundVariable(&apos;$#{__P(EVENT_CHANCE,20)}&apos;.replaceAll(&apos;([$#])#\\{&apos;, &apos;$1{&apos;)).execute())
+vars.put(&apos;CASE_CHANCE&apos;, new CompoundVariable(&apos;$#{__P(CASE_CHANCE,20)}&apos;.replaceAll(&apos;([$#])#\\{&apos;, &apos;$1{&apos;)).execute())
+vars.put(&apos;LEAD_CONVERSION_RATE&apos;, new CompoundVariable(&apos;$#{__P(CONVERSION_RATE,35)}&apos;.replaceAll(&apos;([$#])#\\{&apos;, &apos;$1{&apos;)).execute())
+vars.put(&apos;CLOSING_RATE&apos;, new CompoundVariable(&apos;$#{__P(CLOSING_RATE,50)}&apos;.replaceAll(&apos;([$#])#\\{&apos;, &apos;$1{&apos;)).execute())
+SampleResult.ignore = true
+</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Lead to Cash Process">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="CREATE New Lead">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.protocol">https</stringProp>
+          <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Lead/</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+ &quot;LastName&quot;: &quot;${p_lastname}&quot;,&#xd;
+ &quot;Company&quot;: &quot;${p_company}&quot;,&#xd;
+ &quot;Status&quot;: &quot;New&quot;,&#xd;
+ &quot;LeadSource&quot;: &quot;${p_leadsource}&quot;,&#xd;
+ &quot;Email&quot;: &quot;${p_email_prefix}_${__RandomString(5,123456789)}@perftest.com&quot;&#xd;
+}&#xd;
+</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+            <stringProp name="JMESExtractor.referenceName">leadId</stringProp>
+            <stringProp name="JMESExtractor.jmesPathExpr">id</stringProp>
+            <stringProp name="JMESExtractor.matchNumber">1</stringProp>
+            <stringProp name="JMESExtractor.defaultValue">leadId_NOT_FOUND</stringProp>
+          </JMESPathExtractor>
+          <hashTree/>
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+            <stringProp name="JSON_PATH">$.success</stringProp>
+            <boolProp name="JSONVALIDATION">true</boolProp>
+            <boolProp name="ISREGEX">false</boolProp>
+            <stringProp name="EXPECTED_VALUE">true</stringProp>
+            <boolProp name="EXPECT_NULL">false</boolProp>
+            <boolProp name="INVERT">false</boolProp>
+          </JSONPathAssertion>
+          <hashTree/>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Content-Type" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json; charset=UTF-8</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If Controller">
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="IfController.condition">${__groovy(new Random().nextInt(100) + 1 &lt;= ${NOTE_CHANCE})}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="CREATE New Note">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Note/</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&#xd;
+ &quot;Body&quot;: &quot;Meeting notes for ${p_lastname}&quot;,&#xd;
+ &quot;IsPrivate&quot;: &quot;false&quot;,&#xd;
+ &quot;OwnerId&quot;: &quot;${ownerId}&quot;,&#xd;
+ &quot;ParentId&quot;: &quot;${leadId}&quot;,&#xd;
+ &quot;Title&quot;: &quot;Meeting Notes&quot;&#xd;
+}&#xd;
+</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">noteId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">noteId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.success</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json; charset=UTF-8</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If Controller">
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="IfController.condition">${__groovy(new Random().nextInt(100) + 1 &lt;= ${TASK_CHANCE})}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="CREATE New Task">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Task/</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&#xd;
+ &quot;ActivityDate&quot;: &quot;${__timeShift(yyyy-MM-dd,,,,P1D)}&quot;,&#xd;
+ &quot;OwnerId&quot;: &quot;${ownerId}&quot;,&#xd;
+ &quot;WhoId&quot;: &quot;${leadId}&quot;,&#xd;
+ &quot;Priority&quot;: &quot;Normal&quot;,&#xd;
+ &quot;Status&quot;: &quot;Not Started&quot;,&#xd;
+ &quot;Subject&quot;: &quot;Call&quot;,&#xd;
+ &quot;TaskSubtype&quot;: &quot;Task&quot;&#xd;
+}&#xd;
+</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">taskId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">taskId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.success</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json; charset=UTF-8</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If Controller">
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="IfController.condition">${__groovy(new Random().nextInt(100) + 1 &lt;= ${EVENT_CHANCE})}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="CREATE New Event">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Event/</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&#xd;
+   &quot;OwnerId&quot;: &quot;${ownerId}&quot;,&#xd;
+   &quot;WhoId&quot;: &quot;${leadId}&quot;,&#xd;
+   &quot;Subject&quot;: &quot;Internal Meeting&quot;,&#xd;
+   &quot;StartDateTime&quot;: &quot;${__timeShift(yyyy-MM-dd&apos;T&apos;HH:mm:ss&apos;Z&apos;,,,,P1D)}&quot;,&#xd;
+   &quot;EndDateTime&quot;: &quot;${__timeShift(yyyy-MM-dd&apos;T&apos;HH:mm:ss&apos;Z&apos;,,,,P1H)}&quot;&#xd;
+}&#xd;
+</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">eventId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">eventId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.success</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json; charset=UTF-8</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If Controller" enabled="true">
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="IfController.condition">${__groovy(new Random().nextInt(100) + 1 &lt;= ${CASE_CHANCE})}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="CREATE New Case">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Case/</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&#xd;
+ &quot;ContactId&quot;: &quot;003gK00000GNSIoQAP&quot;,&#xd;
+ &quot;OwnerId&quot;: &quot;${ownerId}&quot;,&#xd;
+ &quot;Priority&quot;: &quot;High&quot;,&#xd;
+ &quot;Priority&quot;: &quot;Normal&quot;,&#xd;
+ &quot;Reason&quot;: &quot;Performance&quot;,&#xd;
+ &quot;Status&quot;: &quot;New&quot;,&#xd;
+ &quot;Subject&quot;: &quot;Performance inadequate for second consecutive week&quot;,&#xd;
+ &quot;Type&quot; : &quot;Electrical&quot;&#xd;
+}&#xd;
+</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">caseId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">caseId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.success</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json; charset=UTF-8</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If Controller">
+          <boolProp name="IfController.useExpression">true</boolProp>
+          <stringProp name="IfController.condition">${__groovy(new Random().nextInt(100) + 1 &lt;= ${LEAD_CONVERSION_RATE})}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="UPDATE Lead to Close - Converted">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/Soap/c/60.0</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">&lt;soapenv:Envelope xmlns:soapenv=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:urn=&quot;urn:enterprise.soap.sforce.com&quot;&gt;&#xd;
+  &lt;soapenv:Header&gt;&#xd;
+    &lt;urn:SessionHeader&gt;&#xd;
+      &lt;urn:sessionId&gt;${__P(ACCESS_TOKEN,)}&lt;/urn:sessionId&gt;&#xd;
+    &lt;/urn:SessionHeader&gt;&#xd;
+  &lt;/soapenv:Header&gt;&#xd;
+  &lt;soapenv:Body&gt;&#xd;
+    &lt;urn:convertLead&gt;&#xd;
+      &lt;urn:leadConverts&gt;&#xd;
+        &lt;urn:convertedStatus&gt;Closed - Converted&lt;/urn:convertedStatus&gt;&#xd;
+        &lt;urn:leadId&gt;${leadId}&lt;/urn:leadId&gt;&#xd;
+        &lt;urn:doNotCreateOpportunity&gt;false&lt;/urn:doNotCreateOpportunity&gt;&#xd;
+        &lt;urn:opportunityName&gt;Deal for ${leadId}&lt;/urn:opportunityName&gt;&#xd;
+      &lt;/urn:leadConverts&gt;&#xd;
+    &lt;/urn:convertLead&gt;&#xd;
+  &lt;/soapenv:Body&gt;&#xd;
+&lt;/soapenv:Envelope&gt;&#xd;
+</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regular Expression Extractor" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+              <stringProp name="RegexExtractor.refname">accountId</stringProp>
+              <stringProp name="RegexExtractor.regex">&lt;accountId&gt;(.+?)&lt;/accountId&gt;</stringProp>
+              <stringProp name="RegexExtractor.match_number">1</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
+              <stringProp name="RegexExtractor.default"></stringProp>
+              <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+            </RegexExtractor>
+            <hashTree/>
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regular Expression Extractor" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+              <stringProp name="RegexExtractor.refname">opportunityId</stringProp>
+              <stringProp name="RegexExtractor.regex">&lt;opportunityId&gt;(.+?)&lt;/opportunityId&gt;</stringProp>
+              <stringProp name="RegexExtractor.match_number">1</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
+              <stringProp name="RegexExtractor.default"></stringProp>
+              <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+            </RegexExtractor>
+            <hashTree/>
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Regular Expression Extractor" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+              <stringProp name="RegexExtractor.refname">contactId</stringProp>
+              <stringProp name="RegexExtractor.regex">&lt;contactId&gt;(.+?)&lt;/contactId&gt;</stringProp>
+              <stringProp name="RegexExtractor.match_number">1</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
+              <stringProp name="RegexExtractor.default"></stringProp>
+              <boolProp name="RegexExtractor.default_empty_value">false</boolProp>
+            </RegexExtractor>
+            <hashTree/>
+            <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="RECORD_ID Properties" enabled="true">
+              <stringProp name="cacheKey">true</stringProp>
+              <stringProp name="filename"></stringProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="script">props.put(&apos;ACCOUNT_ID&apos;, vars.get(&apos;accountId&apos;)); props.put(&apos;OPPORTUNITY_ID&apos;, vars.get(&apos;opportunityId&apos;)); props.put(&apos;CONTACT_ID&apos;, vars.get(&apos;contactId&apos;));</stringProp>
+              <stringProp name="scriptLanguage">groovy</stringProp>
+            </JSR223PostProcessor>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Succes Assertion" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="1654194611">&lt;success&gt;true&lt;/success&gt;</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">16</intProp>
+              <stringProp name="Assertion.custom_message"></stringProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="Content-Type" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">text/xml; charset=UTF-8</stringProp>
+                </elementProp>
+                <elementProp name="SOAPAction" elementType="Header">
+                  <stringProp name="Header.name">SOAPAction</stringProp>
+                  <stringProp name="Header.value">&quot;&quot;</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="If Controller">
+            <boolProp name="IfController.useExpression">true</boolProp>
+            <stringProp name="IfController.condition">${__groovy(new Random().nextInt(100) + 1 &lt;= ${CLOSING_RATE})}</stringProp>
+            <boolProp name="IfController.evaluateAll">false</boolProp>
+          </IfController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="UPDATE Opportunity to Closed Won">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Opportunity/${opportunityId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">PATCH</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                <collectionProp name="Arguments.arguments">
+                  <elementProp name="" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">{&#xd;
+ &quot;StageName&quot;: &quot;Closed Won&quot;,&#xd;
+ &quot;Amount&quot;: ${p_amount}&#xd;
+}&#xd;
+</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+                <collectionProp name="HeaderManager.headers">
+                  <elementProp name="Content-Type" elementType="Header">
+                    <stringProp name="Header.name">Content-Type</stringProp>
+                    <stringProp name="Header.value">application/json; charset=UTF-8</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </HeaderManager>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="Clean up" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </PostThreadGroup>
+      <hashTree>
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="Authorization" elementType="Header">
+              <stringProp name="Header.name">Authorization</stringProp>
+              <stringProp name="Header.value">Bearer ${__P(ACCESS_TOKEN,)}</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Task Clean Up">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Tasks" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Task+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">taskId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">taskId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach TaskId" enabled="true">
+            <stringProp name="ForeachController.inputVal">taskId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentTaskId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Task" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Task/${currentTaskId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Notes Clean Up" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Notes" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Note+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">noteId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">noteId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach NoteId" enabled="true">
+            <stringProp name="ForeachController.inputVal">noteId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentNoteId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Note" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Note/${currentNoteId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Opportunities Clean Up" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Opportunities" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Opportunity+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">opportunityId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">opportunityId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach OpportunityId" enabled="true">
+            <stringProp name="ForeachController.inputVal">opportunityId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentOpportunityId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Opportunity" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Opportunity/${currentOpportunityId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Accounts Clean Up" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Accounts" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Account+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">accountId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">accountId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach AccountId" enabled="true">
+            <stringProp name="ForeachController.inputVal">accountId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentAccountId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Account" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Account/${currentAccountId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Leads Clean Up" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Leads" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">leadId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">leadId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach LeadId" enabled="true">
+            <stringProp name="ForeachController.inputVal">leadId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentLeadId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Lead" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Lead/${currentLeadId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Case Clean Up" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Cases" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Case+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">caseId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">caseId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach CaseId" enabled="true">
+            <stringProp name="ForeachController.inputVal">caseId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentCaseId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Case" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Case/${currentCaseId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="Event Clean Up" enabled="true">
+          <boolProp name="TransactionController.parent">true</boolProp>
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Events" enabled="true">
+            <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+            <stringProp name="HTTPSampler.protocol">https</stringProp>
+            <stringProp name="HTTPSampler.path">/services/data/v60.0/query/?q=SELECT+Id+FROM+Event+WHERE+OwnerId=&apos;${ownerId}&apos;</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <stringProp name="HTTPSampler.method">GET</stringProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <JMESPathExtractor guiclass="JMESPathExtractorGui" testclass="JMESPathExtractor" testname="JSON JMESPath Extractor" enabled="true">
+              <stringProp name="JMESExtractor.referenceName">eventId</stringProp>
+              <stringProp name="JMESExtractor.jmesPathExpr">records[*].Id</stringProp>
+              <stringProp name="JMESExtractor.matchNumber">-1</stringProp>
+              <stringProp name="JMESExtractor.defaultValue">eventId_NOT_FOUND</stringProp>
+            </JMESPathExtractor>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Success Assertion" enabled="true">
+              <stringProp name="JSON_PATH">$.done</stringProp>
+              <boolProp name="JSONVALIDATION">true</boolProp>
+              <boolProp name="ISREGEX">false</boolProp>
+              <stringProp name="EXPECTED_VALUE">true</stringProp>
+              <boolProp name="EXPECT_NULL">false</boolProp>
+              <boolProp name="INVERT">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ForeachController guiclass="ForeachControlPanel" testclass="ForeachController" testname="ForEach EventId" enabled="true">
+            <stringProp name="ForeachController.inputVal">eventId</stringProp>
+            <stringProp name="ForeachController.returnVal">currentEventId</stringProp>
+            <boolProp name="ForeachController.useSeparator">true</boolProp>
+          </ForeachController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="DELETE Event" enabled="true">
+              <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+              <stringProp name="HTTPSampler.protocol">https</stringProp>
+              <stringProp name="HTTPSampler.path">/services/data/v60.0/sobjects/Event/${currentEventId}</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">DELETE</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="49590">204</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">8</intProp>
+                <stringProp name="Assertion.custom_message"></stringProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>false</responseData>
+            <samplerData>false</samplerData>
+            <xml>false</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>false</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <threadCounts>true</threadCounts>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
