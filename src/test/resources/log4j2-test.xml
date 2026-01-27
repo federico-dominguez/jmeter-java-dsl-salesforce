@@ -12,6 +12,8 @@
     <Logger name="us.abstracta.jmeter" level="INFO" additivity="false">
       <AppenderRef ref="Console"/>
     </Logger>
+    <Logger name="us.abstracta.jmeter.javadsl.blazemeter.BlazeMeterClient" level="DEBUG"/>
+    <Logger name="okhttp3" level="DEBUG"/>
     <Root level="WARN">
       <AppenderRef ref="Console"/>
     </Root>

@@ -48,8 +48,6 @@ public class LeadToCashThreadGroup {
             .set("LEAD_CONVERSION_RATE", CONVERSION_RATE)
             .set("CLOSING_RATE", CLOSING_RATE),
 
-        transaction("Lead to Cash Process").generateParentSample(),
-
         leadService.createLead(),
 
         // ---- Conditional Note ----

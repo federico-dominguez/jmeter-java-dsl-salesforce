@@ -8,21 +8,25 @@ import java.util.Base64
 // 1. CONFIGURATION
 // --------------------------------------------------------
 
-def CLIENT_ID = System.getenv("CLIENT_ID") 
-def USERNAME = System.getenv("SALESFORCE_USERNAME")
-def AUDIENCE = System.getenv("AUDIENCE")
+def CLIENT_ID = System.getenv("CLIENT_ID") ?:props.get("CLIENT_ID")
+def USERNAME = System.getenv("SALESFORCE_USERNAME")?:props.get("SALESFORCE_USERNAME")
+def AUDIENCE = System.getenv("AUDIENCE")?:props.get("AUDIENCE")
 def ALGORITHM = "RS256"
 def CURRENT_TIME = System.currentTimeMillis() / 1000L;
 def EXPIRATION_TIME = CURRENT_TIME + 300L; 
 
-log.info("Client ID: " + CLIENT_ID);
+
 
 def getPrivateKeyContent() {
 
     def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
     def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
 
-    def content = System.getenv(CI_CONTENT_PROPERTY);
+    def content = props.get(CI_CONTENT_PROPERTY);
+
+    if (content == null) {
+        content = props.get(CI_CONTENT_PROPERTY);
+    }
 
     if (content != null && !content.isEmpty()) {
         log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
