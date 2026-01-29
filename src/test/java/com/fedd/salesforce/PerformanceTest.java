@@ -55,7 +55,7 @@ public class PerformanceTest {
                                                 .totalUsers(1)
                                                 .rampUpFor(Duration.ofMinutes(1))
                                                 .holdFor(Duration.ofMinutes(1))
-                                                .testTimeout(Duration.ofMinutes(1))
+                                                .testTimeout(Duration.ofMinutes(10))  // Total timeout including startup + execution
                                                 .assets(dataFile));
                 assertThat(stats.overall().sampleTimePercentile99()).isLessThan(Duration.ofSeconds(5));
         }

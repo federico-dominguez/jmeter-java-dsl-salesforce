@@ -21,16 +21,26 @@ public class LeadToCashBlazeMeterTestPlan {
     private final CleanUpTeardownThreadGroup cleanUpGroup = new CleanUpTeardownThreadGroup();
 
     public DslTestPlan getTestPlan() throws IOException {
+        // Read credentials from environment variables (for local/CI) or fall back to system properties
+        String username = System.getenv("SALESFORCE_USERNAME");
+        String clientId = System.getenv("SALESFORCE_CLIENT_ID");
+        String privateKey = System.getenv("SALESFORCE_PRIVATE_KEY");
+        String audience = System.getenv("AUDIENCE");
+        
+        if (audience == null || audience.isEmpty()) {
+            audience = "https://orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com";
+        }
+
         return testPlan()
                 .children(
                         vars().set("BASE_URL",
                                 "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com")
                                 .set("ownerId", "005gK00000AQ0ppQAD")
-                                // Set Salesforce credentials from environment/system properties for BlazeMeter
-                                .set("SALESFORCE_USERNAME", "${__P(SALESFORCE_USERNAME,${__env(SALESFORCE_USERNAME,)})}")
-                                .set("SALESFORCE_CLIENT_ID", "${__P(SALESFORCE_CLIENT_ID,${__env(SALESFORCE_CLIENT_ID,)})}")
-                                .set("SALESFORCE_PRIVATE_KEY", "${__P(SALESFORCE_PRIVATE_KEY,${__env(SALESFORCE_PRIVATE_KEY,)})}")
-                                .set("AUDIENCE", "${__P(AUDIENCE,${__env(AUDIENCE,https://login.salesforce.com)})}"),
+                                // Set credentials as JMeter variables for BlazeMeter execution
+                                .set("SALESFORCE_USERNAME", username != null ? username : "EDIT_IN_BLAZEMETER_UI")
+                                .set("SALESFORCE_CLIENT_ID", clientId != null ? clientId : "EDIT_IN_BLAZEMETER_UI")
+                                .set("SALESFORCE_PRIVATE_KEY", privateKey != null ? privateKey : "EDIT_IN_BLAZEMETER_UI")
+                                .set("AUDIENCE", audience),
                         csvDataSet(
                                 "leads_data.csv")
                                 .ignoreFirstLine()
