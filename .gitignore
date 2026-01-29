@@ -13,3 +13,5 @@ target/
 .vscode/.history/
 .idea/
 .DS_Store
+# Temporary CSV copy for BlazeMeter uploads
+/leads_data.csv

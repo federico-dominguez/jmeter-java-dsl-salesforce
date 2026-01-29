@@ -40,9 +40,12 @@ public class PerformanceTest {
                         return;
                 }
 
-                // When running in BlazeMeter, upload CSV as an asset named 'leads_data.csv'.
-                final String FILE_PATH = "leads_data.csv";
-                java.io.File dataFile = new java.io.File(FILE_PATH);
+                // BlazeMeter engine expects assets to be accessible by filename from working directory
+                // Copy CSV to project root temporarily for upload
+                java.io.File sourceFile = new java.io.File("src/main/resources/data/leads_data.csv");
+                java.io.File dataFile = new java.io.File("leads_data.csv");
+                java.nio.file.Files.copy(sourceFile.toPath(), dataFile.toPath(), 
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
                 // Use the BlazeMeter-specific test plan that references the CSV asset filename.
                 TestPlanStats stats = leadToCashBlazePlan.getTestPlan()
