@@ -2,6 +2,8 @@
 
 JMeter Java DSL demo for performance testing on Salesforce environments.
 
+> 🗺️ **[View Development Roadmap](ROADMAP.md)** - Strategic plan for portfolio enhancements
+
 ## Prerequisites
 
 - Java 17 or higher
