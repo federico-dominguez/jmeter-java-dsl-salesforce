@@ -25,7 +25,12 @@ public class LeadToCashBlazeMeterTestPlan {
                 .children(
                         vars().set("BASE_URL",
                                 "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com")
-                                .set("ownerId", "005gK00000AQ0ppQAD"),
+                                .set("ownerId", "005gK00000AQ0ppQAD")
+                                // Set Salesforce credentials from environment/system properties for BlazeMeter
+                                .set("SALESFORCE_USERNAME", "${__P(SALESFORCE_USERNAME,${__env(SALESFORCE_USERNAME,)})}")
+                                .set("SALESFORCE_CLIENT_ID", "${__P(SALESFORCE_CLIENT_ID,${__env(SALESFORCE_CLIENT_ID,)})}")
+                                .set("SALESFORCE_PRIVATE_KEY", "${__P(SALESFORCE_PRIVATE_KEY,${__env(SALESFORCE_PRIVATE_KEY,)})}")
+                                .set("AUDIENCE", "${__P(AUDIENCE,${__env(AUDIENCE,https://login.salesforce.com)})}"),
                         csvDataSet(
                                 "leads_data.csv")
                                 .ignoreFirstLine()

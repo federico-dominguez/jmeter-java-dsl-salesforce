@@ -48,6 +48,7 @@ public class PerformanceTest {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
                 // Use the BlazeMeter-specific test plan that references the CSV asset filename.
+                // Note: Salesforce credentials must be set as environment variables in BlazeMeter UI
                 TestPlanStats stats = leadToCashBlazePlan.getTestPlan()
                                 .runIn(new BlazeMeterEngine(bzToken)
                                                 .testName("Salesforce Lead to Cash Performance Test")

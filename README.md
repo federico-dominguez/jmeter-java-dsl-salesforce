@@ -24,13 +24,19 @@ Set the following environment variables before running tests:
 
 ```powershell
 # Salesforce credentials (required for all runs)
-$env:SALESFORCE_USERNAME = "your-salesforce-username"
-$env:SALESFORCE_CLIENT_ID = "your-connected-app-client-id"
-$env:SALESFORCE_PRIVATE_KEY = "your-base64-encoded-private-key"
+$env:SALESFORCE_USERNAME = "your-salesforce-username"          # Your Salesforce user email
+$env:SALESFORCE_CLIENT_ID = "your-connected-app-client-id"     # Connected App Consumer Key
+$env:SALESFORCE_PRIVATE_KEY = "your-base64-encoded-private-key" # Base64-encoded private key (no PEM headers)
+$env:AUDIENCE = "https://login.salesforce.com"                  # Optional: defaults to login.salesforce.com (use test.salesforce.com for sandbox)
 
 # BlazeMeter API token (required only for cloud execution)
-$env:BZ_TOKEN = "your-blazemeter-api-token"
+$env:BZ_TOKEN = "your-blazemeter-api-token:api-secret"          # Format: id:secret
 ```
+
+**Important for BlazeMeter:**
+- All Salesforce environment variables are automatically passed as JMeter properties to BlazeMeter
+- The JWT generator will read from properties in the cloud environment
+- Ensure your private key is properly Base64-encoded (use `[Convert]::ToBase64String([IO.File]::ReadAllBytes("path\to\key.pem"))` in PowerShell)
 
 ## Running Tests
 
@@ -51,14 +57,24 @@ This executes the `test()` method in `PerformanceTest.java`, which:
 
 Run tests on BlazeMeter's cloud infrastructure:
 
-1. Set your BlazeMeter API token:
+1. **Set environment variables in BlazeMeter UI:**
+   - Go to your test in BlazeMeter
+   - Navigate to **Configuration** tab
+   - Scroll to **User Defined Variables** section
+   - Add the following variables:
+     - `SALESFORCE_USERNAME`: Your Salesforce user email
+     - `SALESFORCE_CLIENT_ID`: Connected App Consumer Key
+     - `SALESFORCE_PRIVATE_KEY`: Base64-encoded private key (no PEM headers/footers)
+     - `AUDIENCE`: `https://login.salesforce.com` (or `https://test.salesforce.com` for sandbox)
+
+2. Set your BlazeMeter API token locally:
 ```powershell
 $env:BZ_TOKEN = "your-blazemeter-api-token"
 ```
 
-2. Run the BlazeMeter test:
+3. Run the BlazeMeter test:
 ```powershell
-mvn exec:java -Dexec.mainClass="com.fedd.salesforce.PerformanceTest"
+mvn exec:java -Dexec.mainClass="com.fedd.salesforce.PerformanceTest" -Dexec.classpathScope=test
 ```
 
 Or run the specific test method:
@@ -71,6 +87,7 @@ This:
 - Uses `LeadToCashBlazeMeterTestPlan` (references asset filename)
 - Runs 1 user with 1-minute ramp-up and hold
 - Asserts 99th percentile response time < 5 seconds
+- JWT generator reads credentials from BlazeMeter environment variables
 
 ### Results
 
