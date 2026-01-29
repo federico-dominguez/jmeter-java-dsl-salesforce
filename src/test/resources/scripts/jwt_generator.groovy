@@ -8,30 +8,41 @@ import java.util.Base64
 // 1. CONFIGURATION
 // --------------------------------------------------------
 
-def CLIENT_ID = System.getenv("CLIENT_ID") 
-def USERNAME = System.getenv("SALESFORCE_USERNAME")
-def AUDIENCE = System.getenv("AUDIENCE")
+def CLIENT_ID = vars.get("SALESFORCE_CLIENT_ID") ?: props.get("SALESFORCE_CLIENT_ID") ?: System.getenv("SALESFORCE_CLIENT_ID") ?: props.get("CLIENT_ID") ?: System.getenv("CLIENT_ID")
+def USERNAME = vars.get("SALESFORCE_USERNAME") ?: props.get("SALESFORCE_USERNAME") ?: System.getenv("SALESFORCE_USERNAME")
+def AUDIENCE = vars.get("AUDIENCE") ?: props.get("AUDIENCE") ?: System.getenv("AUDIENCE") ?: "https://login.salesforce.com"
 def ALGORITHM = "RS256"
 def CURRENT_TIME = System.currentTimeMillis() / 1000L;
 def EXPIRATION_TIME = CURRENT_TIME + 300L; 
 
-log.info("Client ID: " + CLIENT_ID);
+
 
 def getPrivateKeyContent() {
 
     def CI_CONTENT_PROPERTY = "SALESFORCE_PRIVATE_KEY"
     def LOCAL_PATH_ENV_VAR = "PRIVATE_KEY_PATH"
 
-    def content = System.getenv(CI_CONTENT_PROPERTY);
+    // 1. Check JMeter variables first (for BlazeMeter)
+    def content = vars.get(CI_CONTENT_PROPERTY);
+    
+    // 2. Check props (for properties passed to JMeter)
+    if (content == null || content.isEmpty()) {
+        content = props.get(CI_CONTENT_PROPERTY);
+    }
+    
+    // 3. Fallback to environment variable
+    if (content == null || content.isEmpty()) {
+        content = System.getenv(CI_CONTENT_PROPERTY);
+    }
 
     if (content != null && !content.isEmpty()) {
-        log.info("Key source: CI property (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
+        log.info("Key source: Variable/Property/Environment (SALESFORCE_PRIVATE_KEY) - Assuming the value provided is already Base64 encoded.");
         byte[] decodedBytes = Base64.getDecoder().decode(content);
         String rawPemContent = new String(decodedBytes, "UTF-8");
         return rawPemContent;
     }
     
-    // 2. Fallback: Attempt to get path from local environment variable
+    // 4. Fallback: Attempt to get path from local environment variable
     def keyPath = System.getenv(LOCAL_PATH_ENV_VAR);
 
     if (keyPath != null && !keyPath.isEmpty()) {
@@ -44,8 +55,8 @@ def getPrivateKeyContent() {
         }
     }
     
-    // 3. Failure
-    throw new Exception("ERROR: Private key content missing! Set property '$CI_CONTENT_PROPERTY' (CI) or environment variable '$LOCAL_PATH_ENV_VAR' (local).");
+    // 5. Failure
+    throw new Exception("ERROR: Private key content missing! Set variable/property/environment '$CI_CONTENT_PROPERTY' or environment variable '$LOCAL_PATH_ENV_VAR' (local path).");
 }
 
 

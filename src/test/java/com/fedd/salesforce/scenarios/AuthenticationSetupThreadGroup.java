@@ -15,10 +15,7 @@ public class AuthenticationSetupThreadGroup {
 
         public DslSetupThreadGroup getSetupThreadGroup() throws IOException {
                 return setupThreadGroup("Authentication",
-                                transaction("Authentication")
-                                                .generateParentSample()
-                                                .children(
-                                                                authService.authenticate()));
+                                authService.authenticate());
         }
 
 }

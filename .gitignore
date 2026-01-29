@@ -1,2 +1,17 @@
 .vscode/launch.json
 .vscode/settings.json
+target/
+*.jtl
+*.class
+*.jar
+*.log
+*.keystore
+*.p12
+*.pem
+*.key
+.vscode/launch.json
+.vscode/.history/
+.idea/
+.DS_Store
+# Temporary CSV copy for BlazeMeter uploads
+/leads_data.csv
