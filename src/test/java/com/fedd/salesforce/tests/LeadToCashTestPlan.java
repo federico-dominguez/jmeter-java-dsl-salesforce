@@ -3,6 +3,7 @@ package com.fedd.salesforce.tests;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.csvDataSet;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCache;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.influxDbListener;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.testPlan;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.vars;
 
@@ -36,6 +37,11 @@ public class LeadToCashTestPlan {
                                 .disable(),
                         httpCookies()
                                 .disable(),
+                        // InfluxDB Backend Listener for real-time monitoring
+                        influxDbListener("http://localhost:8086/api/v2/write?org=jmeter&bucket=jmeter&precision=ns")
+                                .token("jmeter-admin-token-please-change-in-production")
+                                .title("Salesforce Lead to Cash Performance Test")
+                                .application("salesforce-lead-to-cash"),
                         authGroup.getSetupThreadGroup(),
                         leadToCashGroup.getLeadToCashThreadGroup(10,1)
                         ,cleanUpGroup.getTeardownThreadGroup()

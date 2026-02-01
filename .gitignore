@@ -8,6 +8,10 @@ target/
 *.keystore
 *.p12
 *.pem
+
+# Monitoring data
+grafana/data/
+influxdb/data/
 *.key
 .vscode/launch.json
 .vscode/.history/
