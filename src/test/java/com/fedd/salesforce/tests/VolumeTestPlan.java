@@ -99,7 +99,6 @@ public class VolumeTestPlan {
                                 .application("salesforce-volume-test"),
                         authGroup.getSetupThreadGroup(),
                         leadToCashGroup.getLeadToCashThreadGroup(5, 20) // 5 users × 20 iterations = 100 record attempts
-                                .rampTo(5, Duration.ofMinutes(2))
                                 .holdIterating("5m"),
                         cleanUpGroup.getTeardownThreadGroup()
                 );

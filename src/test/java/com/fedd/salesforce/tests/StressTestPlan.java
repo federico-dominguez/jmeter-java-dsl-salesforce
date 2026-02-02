@@ -68,8 +68,7 @@ public class StressTestPlan {
                                 .title("Salesforce Stress Test - Breaking Point Analysis")
                                 .application("salesforce-stress-test"),
                         authGroup.getSetupThreadGroup(),
-                        leadToCashGroup.getLeadToCashThreadGroup(15, 20)
-                                .rampTo(15, Duration.ofMinutes(10)), // Gradually ramp to find breaking point
+                        leadToCashGroup.getLeadToCashThreadGroup(15, 20), // 15 users, 20 iterations each
                         cleanUpGroup.getTeardownThreadGroup()
                 );
 

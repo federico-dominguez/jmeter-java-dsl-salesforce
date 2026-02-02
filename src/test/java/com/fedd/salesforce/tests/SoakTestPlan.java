@@ -89,8 +89,7 @@ public class SoakTestPlan {
                                 .application("salesforce-soak-test"),
                         authGroup.getSetupThreadGroup(),
                         leadToCashGroup.getLeadToCashThreadGroup(5, 1)
-                                .rampTo(5, Duration.ofMinutes(5))
-                                .holdIterating("1h"), // Gentle ramp, then sustain for 1 hour
+                                .holdIterating("1h"), // 5 users sustain for 1 hour
                         cleanUpGroup.getTeardownThreadGroup()
                 );
 

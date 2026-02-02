@@ -75,17 +75,14 @@ public class SpikeTestPlan {
                                 .application("salesforce-spike-test"),
                         authGroup.getSetupThreadGroup(),
                         
-                        // Phase 1: Baseline (2 users, gradual ramp)
-                        leadToCashGroup.getLeadToCashThreadGroup(2, 10)
-                                .rampTo(2, Duration.ofSeconds(30)),
+                        // Phase 1: Baseline (2 users, 10 iterations each)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
                         
-                        // Phase 2: Spike (sudden jump to 10 users)
-                        leadToCashGroup.getLeadToCashThreadGroup(10, 5)
-                                .rampTo(10, Duration.ofSeconds(10)),
+                        // Phase 2: Spike (sudden jump to 10 users, 5 iterations each)
+                        leadToCashGroup.getLeadToCashThreadGroup(10, 5),
                         
-                        // Phase 3: Recovery (back to baseline)
-                        leadToCashGroup.getLeadToCashThreadGroup(2, 10)
-                                .rampTo(2, Duration.ofSeconds(30)),
+                        // Phase 3: Recovery (back to 2 users, 10 iterations each)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
                         
                         cleanUpGroup.getTeardownThreadGroup()
                 );

@@ -1,0 +1,5 @@
+# Add to .gitignore
+
+# Monitoring data (Docker volumes contain sensitive test results)
+grafana/data/
+influxdb/data/
