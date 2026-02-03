@@ -1,4 +1,4 @@
-package com.fedd.salesforce.tests;
+package com.fedd.salesforce.plans;
 
 import static us.abstracta.jmeter.javadsl.JmeterDsl.csvDataSet;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCache;
@@ -17,30 +17,36 @@ import java.time.Duration;
 import us.abstracta.jmeter.javadsl.core.DslTestPlan;
 
 /**
- * Stress Test Plan - Breaking Point Analysis
+ * Spike Test Plan - Traffic Surge Validation
  * 
- * Purpose: Gradually increase load to find Salesforce Developer Edition's actual concurrent request limit
+ * Purpose: Test system behavior during sudden traffic spikes and recovery
  * 
  * Load Pattern:
- * - Ramp from 1 to 15 users over 10 minutes
- * - Hold at 15 users for 20 iterations each
+ * Phase 1 - Baseline: 2 users for 10 iterations (establish normal behavior)
+ * Phase 2 - Spike: Ramp to 10 users in 10 seconds, hold for 5 iterations (sudden surge)
+ * Phase 3 - Recovery: Drop to 2 users for 10 iterations (validate recovery)
  * 
  * Expected Behavior:
- * - Should see throttling/errors around 10-15 concurrent users (Salesforce Dev limit)
- * - Response times should increase as we approach the limit
- * - May see HTTP 503 (Service Unavailable) or UNABLE_TO_LOCK_ROW errors
+ * - Baseline phase should show normal response times
+ * - Spike phase should trigger Salesforce rate limiting (503 errors or UNABLE_TO_LOCK_ROW)
+ * - Recovery phase should return to normal performance within 1-2 minutes
  * 
  * Success Criteria:
- * - Identify the exact user count where p95 response time exceeds 5 seconds
- * - Document when errors start appearing (error rate > 0%)
- * - Determine stable concurrent user capacity for this environment
+ * - Measure error rate during spike (acceptable: < 20%)
+ * - Validate recovery time (baseline response time restored within 2 minutes)
+ * - Confirm p95 response time returns to pre-spike levels
+ * - No errors during recovery phase
+ * 
+ * Real-World Scenario:
+ * - Simulates sudden increase in sales team activity (e.g., end of quarter rush)
+ * - Tests API rate limiting behavior and auto-scaling response
+ * - Validates system doesn't crash under sudden load
  * 
  * Salesforce API Limits:
- * - Concurrent requests: 5-25 (typically ~10-15 for Developer Edition)
- * - Daily API calls: 5,000-15,000
- * - Estimated API calls for this test: ~300-450 (well under limit)
+ * - Concurrent requests: Will likely hit the limit during spike
+ * - Estimated total API calls: ~150-200 (well under daily limit)
  */
-public class StressTestPlan {
+public class SpikeTestPlan {
 
     private final AuthenticationSetupThreadGroup authGroup = new AuthenticationSetupThreadGroup();
     private final LeadToCashThreadGroup leadToCashGroup = new LeadToCashThreadGroup();
@@ -65,10 +71,19 @@ public class StressTestPlan {
                         // InfluxDB Backend Listener for real-time monitoring
                         influxDbListener("http://localhost:8086/api/v2/write?org=jmeter&bucket=jmeter&precision=ns")
                                 .token("jmeter-admin-token-please-change-in-production")
-                                .title("Salesforce Stress Test - Breaking Point Analysis")
-                                .application("salesforce-stress-test"),
+                                .title("Salesforce Spike Test - Traffic Surge Validation")
+                                .application("salesforce-spike-test"),
                         authGroup.getSetupThreadGroup(),
-                        leadToCashGroup.getLeadToCashThreadGroup(15, 20), // 15 users, 20 iterations each
+                        
+                        // Phase 1: Baseline (2 users, 10 iterations each)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
+                        
+                        // Phase 2: Spike (sudden jump to 10 users, 5 iterations each)
+                        leadToCashGroup.getLeadToCashThreadGroup(10, 5),
+                        
+                        // Phase 3: Recovery (back to 2 users, 10 iterations each)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
+                        
                         cleanUpGroup.getTeardownThreadGroup()
                 );
 

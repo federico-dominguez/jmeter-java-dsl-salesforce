@@ -9,8 +9,8 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
 
-import com.fedd.salesforce.tests.LeadToCashTestPlan;
-import com.fedd.salesforce.tests.LeadToCashBlazeMeterTestPlan;
+import com.fedd.salesforce.plans.LeadToCashTestPlan;
+import com.fedd.salesforce.plans.LeadToCashBlazeMeterTestPlan;
 
 import us.abstracta.jmeter.javadsl.blazemeter.BlazeMeterEngine;
 import us.abstracta.jmeter.javadsl.core.TestPlanStats;

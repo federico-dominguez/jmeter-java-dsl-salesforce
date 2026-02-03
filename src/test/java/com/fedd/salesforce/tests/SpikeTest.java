@@ -1,5 +1,7 @@
 package com.fedd.salesforce.tests;
 
+import com.fedd.salesforce.plans.SpikeTestPlan;
+
 import org.junit.jupiter.api.Test;
 
 /**

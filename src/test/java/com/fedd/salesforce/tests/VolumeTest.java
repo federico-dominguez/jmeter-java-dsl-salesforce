@@ -1,5 +1,7 @@
 package com.fedd.salesforce.tests;
 
+import com.fedd.salesforce.plans.VolumeTestPlan;
+
 import org.junit.jupiter.api.Test;
 
 /**

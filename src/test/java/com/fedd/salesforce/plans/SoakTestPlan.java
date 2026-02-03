@@ -1,4 +1,4 @@
-package com.fedd.salesforce.tests;
+package com.fedd.salesforce.plans;
 
 import static us.abstracta.jmeter.javadsl.JmeterDsl.csvDataSet;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCache;
