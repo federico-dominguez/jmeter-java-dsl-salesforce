@@ -88,7 +88,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pct50.0\" or r[\"_field\"] == \"pct95.0\" or r[\"_field\"] == \"pct99.0\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"transaction\"] != \"Authentication\" and r[\"transaction\"] != \"Clean up\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pct50.0\" or r[\"_field\"] == \"pct95.0\" or r[\"_field\"] == \"pct99.0\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
           "refId": "A"
         }
       ],
@@ -147,7 +147,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pct95.0\")\n  |> last()",
+          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"transaction\"] != \"Authentication\" and r[\"transaction\"] != \"Clean up\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pct95.0\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -202,7 +202,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"errorsPerSecond\" or r[\"_field\"] == \"count\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with errorRate: r.errorsPerSecond / (r.count / 60.0) }))\n  |> last()",
+          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"transaction\"] != \"Authentication\" and r[\"transaction\"] != \"Clean up\")\n  |> filter(fn: (r) => r[\"_field\"] == \"errorsPerSecond\" or r[\"_field\"] == \"count\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with errorRate: r.errorsPerSecond / (r.count / 60.0) }))\n  |> last()",
           "refId": "A"
         }
       ],
@@ -275,7 +275,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"count\")\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"transaction\"] != \"Authentication\" and r[\"transaction\"] != \"Clean up\")\n  |> filter(fn: (r) => r[\"_field\"] == \"count\")\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
           "refId": "A"
         }
       ],
@@ -366,7 +366,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"errorsPerSecond\")\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)",
+          "query": "from(bucket: \"jmeter\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"jmeter\")\n  |> filter(fn: (r) => r[\"transaction\"] != \"Authentication\" and r[\"transaction\"] != \"Clean up\")\n  |> filter(fn: (r) => r[\"_field\"] == \"errorsPerSecond\")\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)",
           "refId": "A"
         }
       ],
