@@ -96,6 +96,165 @@ This:
 - **Local runs**: Check `target/jtls/*.jtl` for JMeter result files
 - **BlazeMeter runs**: View detailed reports in the BlazeMeter web UI
 
+## Advanced Load Testing Scenarios
+
+The project includes four specialized test scenarios designed to validate different performance characteristics within Salesforce Developer Edition constraints.
+
+### Salesforce Developer Edition Limits
+
+All scenarios are designed to respect Salesforce Developer Edition API limits:
+- **Concurrent requests**: 5-25 (typically ~10-15 before throttling)
+- **Daily API calls**: 5,000-15,000
+- **Data storage**: 5MB
+- **References**: [Salesforce API Limits](https://developer.salesforce.com/docs/atlas.en-us.salesforce_app_limits_cheatsheet.meta/salesforce_app_limits_cheatsheet/salesforce_app_limits_platform_api.htm) | [Concurrent Request Limits](https://help.salesforce.com/s/articleView?id=000385436&type=1)
+
+### Test Scenarios
+
+#### 1. Stress Test - Breaking Point Analysis
+
+**Purpose**: Find the actual concurrent request limit before Salesforce throttling occurs.
+
+**Load Pattern**:
+- 15 users, 20 iterations each
+- Immediate start (no ramp-up)
+
+**Expected Behavior**:
+- Response times increase as concurrency grows
+- HTTP 503 errors or `UNABLE_TO_LOCK_ROW` at ~10-15 concurrent users
+- Identifies stable concurrent user capacity
+
+**Success Criteria**:
+- Document exact user count where p95 > 5 seconds
+- Note when error rate > 0%
+- Determine safe concurrent capacity
+
+**Run**:
+```powershell
+mvn test -Dtest=StressTest
+```
+
+**Duration**: ~15 minutes | **API Calls**: ~300-450
+
+---
+
+#### 2. Spike Test - Traffic Surge Validation
+
+**Purpose**: Test system behavior during sudden traffic spikes and recovery.
+
+**Load Pattern**:
+- **Phase 1 (Baseline)**: 2 users, 10 iterations each
+- **Phase 2 (Spike)**: 10 users, 5 iterations each (sudden surge)
+- **Phase 3 (Recovery)**: 2 users, 10 iterations each
+
+**Expected Behavior**:
+- Baseline phase shows normal response times
+- Spike phase triggers rate limiting (503 errors or slower response)
+- Recovery phase returns to normal within 1-2 minutes
+
+**Success Criteria**:
+- Error rate during spike < 20%
+- Recovery time < 2 minutes (baseline response time restored)
+- No errors during recovery phase
+
+**Run**:
+```powershell
+mvn test -Dtest=SpikeTest
+```
+
+**Duration**: ~5-7 minutes | **API Calls**: ~150-200
+
+**Real-World Scenario**: Simulates end-of-quarter sales rush when team activity suddenly increases.
+
+---
+
+#### 3. Soak Test - Long-Duration Stability
+
+**Purpose**: Detect memory leaks, resource exhaustion, and performance degradation over time.
+
+**Load Pattern**:
+- 5 users sustained for 1 hour
+- Moderate, consistent load
+
+**Expected Behavior**:
+- Response times remain stable throughout
+- No gradual increase (would indicate memory leak)
+- Error rate stays at 0%
+- Total API calls < 2,000 (within daily limit)
+
+**Success Criteria**:
+- p95 at 55 minutes == p95 at 5 minutes (±10%)
+- 0% error rate throughout
+- No `UNABLE_TO_LOCK_ROW` errors
+- Total API calls < 2,000
+
+**Run**:
+```powershell
+mvn test -Dtest=SoakTest
+```
+
+**Duration**: ~1 hour 5 minutes | **API Calls**: ~1,500
+
+**What It Tests**: Memory leaks, session management, connection pooling, API daily limit accumulation
+
+---
+
+#### 4. Volume Test - Large Dataset Performance
+
+**Purpose**: Validate query performance and data processing with larger record counts.
+
+**Load Pattern**:
+- 5 users processing 100 unique lead records
+- Each lead goes through full Lead-to-Cash workflow
+- Uses `volume_leads_data.csv` (100 unique records)
+
+**Expected Behavior**:
+- Response times scale linearly with dataset size
+- SOQL queries handle larger result sets efficiently
+- Storage stays under 1MB (well under 5MB limit)
+
+**Success Criteria**:
+- p95 with 100 records ≤ p95 with 10 records (±15%)
+- 0% error rate (no storage limit errors)
+- All 100 unique leads created successfully
+- No data conflicts or `UNABLE_TO_LOCK_ROW` errors
+
+**Run**:
+```powershell
+mvn test -Dtest=VolumeTest
+```
+
+**Duration**: ~7-10 minutes | **API Calls**: ~500
+
+**Comparison**: Compare results against baseline test (10 records) to measure scaling impact.
+
+---
+
+### Monitoring with Grafana
+
+All test scenarios send real-time metrics to InfluxDB and display in Grafana dashboards:
+
+1. **Start monitoring stack**:
+```powershell
+docker-compose up -d
+```
+
+2. **Access dashboard**: http://localhost:3000 (admin/admin)
+
+3. **Metrics tracked**:
+   - Response time percentiles (p50, p95, p99)
+   - Throughput (requests/second)
+   - Error rate
+   - Per-transaction performance
+   - Time-series trends
+
+4. **Dashboard features**:
+   - Real-time updates during test execution
+   - Historical data retention
+   - Transaction filtering (excludes setup/teardown)
+   - SLA threshold alerts
+
+For detailed monitoring setup, see [MONITORING.md](MONITORING.md).
+
 ## Build Commands
 
 ```powershell
