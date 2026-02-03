@@ -1,13 +1,16 @@
 package com.fedd.salesforce.tests;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCache;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.testPlan;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.threadGroup;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.vars;
 
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
+import com.fedd.salesforce.scenarios.AuthenticationSetupThreadGroup;
 import com.fedd.salesforce.scenarios.CleanUpTeardownThreadGroup;
 
 import us.abstracta.jmeter.javadsl.core.TestPlanStats;
@@ -29,6 +32,7 @@ import us.abstracta.jmeter.javadsl.core.TestPlanStats;
  */
 public class CleanupTest {
     
+    private final AuthenticationSetupThreadGroup authGroup = new AuthenticationSetupThreadGroup();
     private final CleanUpTeardownThreadGroup cleanUpGroup = new CleanUpTeardownThreadGroup();
     
     @Test
@@ -36,6 +40,11 @@ public class CleanupTest {
         System.out.println("Starting cleanup of all test records...");
         
         TestPlanStats stats = testPlan(
+            vars().set("BASE_URL", "orgfarm-b8d4a27e18-dev-ed.develop.my.salesforce.com")
+                  .set("ownerId", "005gK00000AQ0ppQAD"),
+            httpCache().disable(),
+            authGroup.getSetupThreadGroup(),  // Authenticate first
+            httpCookies().disable(),
             cleanUpGroup.getTeardownThreadGroup()
         ).run();
         
