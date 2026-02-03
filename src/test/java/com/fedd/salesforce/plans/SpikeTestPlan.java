@@ -75,15 +75,16 @@ public class SpikeTestPlan {
                                 .application("salesforce-spike-test"),
                         authGroup.getSetupThreadGroup(),
                         
-                        // Phase 1: Baseline (2 users, 10 iterations each)
-                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
+                        // Phase 1: Baseline (2 users, 3 iterations each = 6 workflows)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 3),
                         
-                        // Phase 2: Spike (sudden jump to 10 users, 5 iterations each)
-                        leadToCashGroup.getLeadToCashThreadGroup(10, 5),
+                        // Phase 2: Spike (sudden jump to 10 users, 2 iterations each = 20 workflows)
+                        leadToCashGroup.getLeadToCashThreadGroup(10, 2),
                         
-                        // Phase 3: Recovery (back to 2 users, 10 iterations each)
-                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
+                        // Phase 3: Recovery (back to 2 users, 3 iterations each = 6 workflows)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 3),
                         
+                        // Total: 32 workflows × 7 records = 224 records (well under 5MB limit)
                         cleanUpGroup.getTeardownThreadGroup()
                 );
 

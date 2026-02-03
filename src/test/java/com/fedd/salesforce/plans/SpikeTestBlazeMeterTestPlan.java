@@ -20,9 +20,10 @@ import us.abstracta.jmeter.javadsl.core.DslTestPlan;
  * Purpose: Test system behavior during sudden traffic spikes on BlazeMeter's cloud infrastructure.
  * 
  * Load Pattern (3 phases):
- * - Phase 1 (Baseline): 2 users, 10 iterations each
- * - Phase 2 (Spike): 10 users, 5 iterations each (sudden surge)
- * - Phase 3 (Recovery): 2 users, 10 iterations each
+ * - Phase 1 (Baseline): 2 users, 3 iterations each = 6 workflows
+ * - Phase 2 (Spike): 10 users, 2 iterations each = 20 workflows (sudden surge)
+ * - Phase 3 (Recovery): 2 users, 3 iterations each = 6 workflows
+ * Total: 32 workflows × 7 records/workflow = 224 records (fits within 5MB Dev Edition limit)
  * 
  * BlazeMeter Configuration:
  * - Uses asset reference: leads_data.csv (must be uploaded to BlazeMeter)
@@ -88,15 +89,16 @@ public class SpikeTestBlazeMeterTestPlan {
                                 .disable(),
                         authGroup.getSetupThreadGroup(),
                         
-                        // Phase 1: Baseline (2 users, 10 iterations each)
-                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
+                        // Phase 1: Baseline (2 users, 3 iterations each = 6 workflows)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 3),
                         
-                        // Phase 2: Spike (sudden jump to 10 users, 5 iterations each)
-                        leadToCashGroup.getLeadToCashThreadGroup(10, 5),
+                        // Phase 2: Spike (sudden jump to 10 users, 2 iterations each = 20 workflows)
+                        leadToCashGroup.getLeadToCashThreadGroup(10, 2),
                         
-                        // Phase 3: Recovery (back to 2 users, 10 iterations each)
-                        leadToCashGroup.getLeadToCashThreadGroup(2, 10),
+                        // Phase 3: Recovery (back to 2 users, 3 iterations each = 6 workflows)
+                        leadToCashGroup.getLeadToCashThreadGroup(2, 3),
                         
+                        // Total: 32 workflows × 7 records = 224 records (well under 5MB limit)
                         cleanUpGroup.getTeardownThreadGroup()
                 );
 
