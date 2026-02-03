@@ -59,15 +59,16 @@ public class SpikeTestBlazeMeter {
         java.nio.file.Files.copy(sourceFile.toPath(), dataFile.toPath(), 
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-        TestPlanStats stats = new SpikeTestBlazeMeterTestPlan().getTestPlan().runIn(
-            new BlazeMeterEngine(bzToken)
-                .testName("Salesforce Spike Test - Traffic Surge Validation")
-                .totalUsers(14) // 2 + 10 + 2 users across 3 phases
-                .rampUpFor(Duration.ofMinutes(1))
-                .holdFor(Duration.ofMinutes(5))
-                .testTimeout(Duration.ofMinutes(15))
-                .assets(dataFile)
-        );
+        // Note: Salesforce credentials are read from environment variables by the test plan
+        // They are set as JMeter variables via vars().set() and passed to BlazeMeter
+        TestPlanStats stats = new SpikeTestBlazeMeterTestPlan().getTestPlan()
+                .runIn(new BlazeMeterEngine(bzToken)
+                        .testName("Salesforce Spike Test - Traffic Surge Validation")
+                        .totalUsers(14) // 2 + 10 + 2 users across 3 phases
+                        .rampUpFor(Duration.ofMinutes(1))
+                        .holdFor(Duration.ofMinutes(5))
+                        .testTimeout(Duration.ofMinutes(15))
+                        .assets(dataFile));
 
         // Assert p99 response time is under 5 seconds
         assertThat(stats.overall().sampleTimePercentile99()).isLessThan(Duration.ofSeconds(5));
