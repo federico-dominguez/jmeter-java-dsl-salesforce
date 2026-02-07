@@ -30,6 +30,20 @@ public class NoteService {
                                                                 .equalsToJson("true"));
         }
 
+        public DslHttpSampler getAllNotes() {
+                return httpSampler("GET All Notes",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Note")
+                                .children(
+                                                jsonExtractor("noteId",
+                                                                "records[*].Id")
+                                                                .matchNumber(-1)
+                                                                .defaultValue("noteId_NOT_FOUND"),
+                                                jsonAssertion("Success Assertion",
+                                                                "$.done")
+                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                                .equalsToJson("true"));
+        }
+
         public DslHttpSampler createNote() {
                 return httpSampler("CREATE New Note",
                                 "https://${BASE_URL}/services/data/v60.0/sobjects/Note/")

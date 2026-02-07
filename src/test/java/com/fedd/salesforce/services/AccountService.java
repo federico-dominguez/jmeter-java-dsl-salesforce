@@ -29,6 +29,20 @@ public class AccountService {
                                                                 .equalsToJson("true"));
         }
 
+        public DslHttpSampler getAllAccounts() {
+                return httpSampler("GET All Accounts",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Account")
+                                .children(
+                                                jsonExtractor("accountId",
+                                                                "records[*].Id")
+                                                                .matchNumber(-1)
+                                                                .defaultValue("accountId_NOT_FOUND"),
+                                                jsonAssertion("Success Assertion",
+                                                                "$.done")
+                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                                .equalsToJson("true"));
+        }
+
         public DslHttpSampler deleteAccount() {
                 return httpSampler("DELETE Account",
                                 "https://${BASE_URL}/services/data/v60.0/sobjects/Account/${currentAccountId}")

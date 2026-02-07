@@ -43,6 +43,23 @@ public class EventService {
         }
 
         /**
+         * Fetches all Event Ids regardless of owner.
+         */
+        public DslHttpSampler getAllEvents() {
+                return httpSampler("GET All Events",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Event")
+                                .children(
+                                        jsonExtractor("eventId",
+                                                        "records[*].Id")
+                                                        .matchNumber(-1)
+                                                        .defaultValue("eventId_NOT_FOUND"),
+                                        jsonAssertion("Success Assertion",
+                                                        "$.done")
+                                                        .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                        .equalsToJson("true"));
+        }
+
+        /**
          * Creates a new Event record in Salesforce.
          * The body is updated with required Event fields: StartDateTime and EndDateTime.
          */
@@ -92,7 +109,7 @@ public class EventService {
                                 getEvents(), // Gets all event Ids
                                 forEachController("ForEach EventId",
                                         "eventId",
-                                        "currentEventId", 
+                                        "currentEventId",
                                         deleteEvent()));
         }
 }

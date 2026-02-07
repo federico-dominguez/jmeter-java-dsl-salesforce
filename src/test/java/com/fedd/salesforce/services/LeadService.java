@@ -33,6 +33,20 @@ public class LeadService {
                 .equalsToJson("true"));
   }
 
+  public DslHttpSampler getAllLeads() {
+    return httpSampler("GET All Leads",
+        "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead")
+        .children(
+            jsonExtractor("leadId",
+                "records[*].Id")
+                .matchNumber(-1)
+                .defaultValue("leadId_NOT_FOUND"),
+            jsonAssertion("Success Assertion",
+                "$.done")
+                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                .equalsToJson("true"));
+  }
+
   public DslHttpSampler createLead() {
     return httpSampler("CREATE New Lead",
         "https://${BASE_URL}/services/data/v60.0/sobjects/Lead/")

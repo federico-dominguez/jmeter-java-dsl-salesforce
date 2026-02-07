@@ -2,6 +2,7 @@ package com.fedd.salesforce.scenarios;
 
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpHeaders;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.teardownThreadGroup;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.threadGroup;
 
 import com.fedd.salesforce.services.AccountService;
 import com.fedd.salesforce.services.CaseService;
@@ -11,6 +12,7 @@ import com.fedd.salesforce.services.NoteService;
 import com.fedd.salesforce.services.OpportunityService;
 import com.fedd.salesforce.services.TaskService;
 
+import us.abstracta.jmeter.javadsl.core.threadgroups.DslDefaultThreadGroup;
 import us.abstracta.jmeter.javadsl.core.threadgroups.DslTeardownThreadGroup;
 
 public class CleanUpTeardownThreadGroup {
@@ -29,13 +31,13 @@ public class CleanUpTeardownThreadGroup {
                                                 httpHeaders()
                                                                 .header("Authorization",
                                                                                 "Bearer ${__P(ACCESS_TOKEN,)}"),
-                                                taskService.deleteAllTasks().generateParentSample(),
-                                                noteService.deleteAllNotes().generateParentSample(),
-                                                opportunityService.deleteAllOpportunities().generateParentSample(),
-                                                accountService.deleteAllAccounts().generateParentSample(),
-                                                leadService.deleteAllLeads().generateParentSample(),
-                                                caseService.deleteAllCases().generateParentSample(),
-                                                eventService.deleteAllEvents().generateParentSample());
+                                                taskService.deleteAllTasks(),
+                                                noteService.deleteAllNotes(),
+                                                opportunityService.deleteAllOpportunities(),
+                                                accountService.deleteAllAccounts(),
+                                                leadService.deleteAllLeads(),
+                                                caseService.deleteAllCases(),
+                                                eventService.deleteAllEvents());
         }
 
 }

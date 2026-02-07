@@ -30,12 +30,26 @@ public class CaseService {
                                                                 .equalsToJson("true"));
         }
 
+        public DslHttpSampler getAllCases() {
+                return httpSampler("GET All Cases",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Case")
+                                .children(
+                                                jsonExtractor("caseId",
+                                                                "records[*].Id")
+                                                                .matchNumber(-1)
+                                                                .defaultValue("caseId_NOT_FOUND"),
+                                                jsonAssertion("Success Assertion",
+                                                                "$.done")
+                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                                .equalsToJson("true"));
+        }
+
         public DslHttpSampler createCase() {
                 return httpSampler("CREATE New Case",
                                 "https://${BASE_URL}/services/data/v60.0/sobjects/Case/")
                                 .post("""
                                                 {
-                                                 "ContactId": "003gK00000GNSIoQAP",
+                                                 "ContactId": "003gK00000PQO1uQAH",
                                                  "OwnerId": "${ownerId}",
                                                  "Priority": "High",
                                                  "Priority": "Normal",
