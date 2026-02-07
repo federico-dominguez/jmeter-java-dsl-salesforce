@@ -9,8 +9,8 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
 
-import com.fedd.salesforce.tests.LeadToCashTestPlan;
-import com.fedd.salesforce.tests.LeadToCashBlazeMeterTestPlan;
+import com.fedd.salesforce.plans.LeadToCashTestPlan;
+import com.fedd.salesforce.plans.LeadToCashBlazeMeterTestPlan;
 
 import us.abstracta.jmeter.javadsl.blazemeter.BlazeMeterEngine;
 import us.abstracta.jmeter.javadsl.core.TestPlanStats;
@@ -21,10 +21,6 @@ public class PerformanceTest {
         private final static LeadToCashTestPlan leadToCashTestPlan = new LeadToCashTestPlan();
         private final static LeadToCashBlazeMeterTestPlan leadToCashBlazePlan = new LeadToCashBlazeMeterTestPlan();
 
-        public static void main(String[] args) throws IOException, InterruptedException, TimeoutException {
-                blazeMeterTest();
-        }
-
         @Test
         public void test() throws IOException {
                 TestPlanStats stats = leadToCashTestPlan.getTestPlan().children(
@@ -33,7 +29,7 @@ public class PerformanceTest {
         }
 
         @Test
-        public static void blazeMeterTest() throws IOException, InterruptedException, TimeoutException {
+        public void blazeMeterTest() throws IOException, InterruptedException, TimeoutException {
                 String bzToken = System.getenv("BZ_TOKEN");
                 if (bzToken == null || bzToken.isEmpty()) {
                         System.out.println("BZ_TOKEN not set; skipping BlazeMeter test run.");
@@ -52,10 +48,9 @@ public class PerformanceTest {
                 TestPlanStats stats = leadToCashBlazePlan.getTestPlan()
                                 .runIn(new BlazeMeterEngine(bzToken)
                                                 .testName("Salesforce Lead to Cash Performance Test")
-                                                .totalUsers(1)
-                                                .rampUpFor(Duration.ofMinutes(1))
-                                                .holdFor(Duration.ofMinutes(1))
-                                                .testTimeout(Duration.ofMinutes(10))  // Total timeout including startup + execution
+                                                .totalUsers(20)
+                                                .rampUpFor(Duration.ofMinutes(5))
+                                                .holdFor(Duration.ofMinutes(5))
                                                 .assets(dataFile));
                 assertThat(stats.overall().sampleTimePercentile99()).isLessThan(Duration.ofSeconds(5));
         }

@@ -30,6 +30,20 @@ public class TaskService {
                                                                 .equalsToJson("true"));
         }
 
+        public DslHttpSampler getAllTasks() {
+                return httpSampler("GET All Tasks",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Task")
+                                .children(
+                                                jsonExtractor("taskId",
+                                                                "records[*].Id")
+                                                                .matchNumber(-1)
+                                                                .defaultValue("taskId_NOT_FOUND"),
+                                                jsonAssertion("Success Assertion",
+                                                                "$.done")
+                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                                .equalsToJson("true"));
+        }
+
         public DslHttpSampler createTask() {
                 return httpSampler("CREATE New Task",
                                 "https://${BASE_URL}/services/data/v60.0/sobjects/Task/")

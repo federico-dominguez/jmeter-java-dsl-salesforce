@@ -30,6 +30,20 @@ public class OpportunityService {
                                                                 .equalsToJson("true"));
         }
 
+        public DslHttpSampler getAllOpportunities() {
+                return httpSampler("GET All Opportunities",
+                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Opportunity")
+                                .children(
+                                                jsonExtractor("opportunityId",
+                                                                "records[*].Id")
+                                                                .matchNumber(-1)
+                                                                .defaultValue("opportunityId_NOT_FOUND"),
+                                                jsonAssertion("Success Assertion",
+                                                                "$.done")
+                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                                .equalsToJson("true"));
+        }
+
         public DslHttpSampler closeOpportunity() {
                 return httpSampler("UPDATE Opportunity to Closed Won",
                                 "https://${BASE_URL}/services/data/v60.0/sobjects/Opportunity/${opportunityId}")

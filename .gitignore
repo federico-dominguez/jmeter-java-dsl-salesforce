@@ -1,21 +1,33 @@
-.vscode/launch.json
-.vscode/settings.json
+# Maven
 target/
-*.jtl
 *.class
 *.jar
+
+# JMeter & Test Artifacts
+*.jtl
 *.log
+*.jmx
+
+# Credentials & Keys
 *.keystore
 *.p12
 *.pem
+*.key
+.env
 
-# Monitoring data
+# Monitoring Data
 grafana/data/
 influxdb/data/
-*.key
-.vscode/launch.json
-.vscode/.history/
+
+# IDE
+.vscode/
 .idea/
 .DS_Store
-# Temporary CSV copy for BlazeMeter uploads
-/leads_data.csv
+
+# BlazeMeter Artifacts
+artifacts/
+*.zip
+blazemeter-artifacts*/
+
+# Temporary Files
+leads_data.csv
