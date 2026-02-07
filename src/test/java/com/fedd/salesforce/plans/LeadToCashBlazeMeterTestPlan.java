@@ -51,6 +51,7 @@ public class LeadToCashBlazeMeterTestPlan {
                                 .disable(),
                         httpCookies()
                                 .disable(),
+
                         authGroup.getSetupThreadGroup(),
                         leadToCashGroup.getLeadToCashThreadGroup(10,1)
                         ,cleanUpGroup.getTeardownThreadGroup()
