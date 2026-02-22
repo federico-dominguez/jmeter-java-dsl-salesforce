@@ -77,9 +77,9 @@ public class LeadToCashTestPlan {
                                         "p_amount"),
                         httpCache().disable(),
                         httpCookies().disable(),
-                        // No think time, no InfluxDB
+                        // No think time, no InfluxDB, all steps forced to 100%
                         authGroup.getSetupThreadGroup(),
-                        leadToCashGroup.getLeadToCashThreadGroup(1, 1, false),
+                        leadToCashGroup.getLeadToCashThreadGroup(1, 1, false, true),
                         cleanUpGroup.getTeardownThreadGroup()
                 );
     }
