@@ -3,9 +3,8 @@ package com.fedd.salesforce.scenarios;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpHeaders;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.ifController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.threadGroup;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.vars;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.uniformRandomTimer;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.vars;
 
 import java.time.Duration;
 
@@ -18,6 +17,13 @@ import com.fedd.salesforce.services.TaskService;
 
 import us.abstracta.jmeter.javadsl.core.threadgroups.DslDefaultThreadGroup;
 
+/**
+ * Main thread group implementing the Lead-to-Cash business workflow.
+ * <p>
+ * Simulates real user behavior with configurable probability for optional steps
+ * (notes, tasks, events, cases) and conditional lead conversion / opportunity closing.
+ * </p>
+ */
 public class LeadToCashThreadGroup {
 
         private final LeadService leadService = new LeadService();

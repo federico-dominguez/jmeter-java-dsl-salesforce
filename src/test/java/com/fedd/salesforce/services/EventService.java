@@ -1,16 +1,13 @@
 package com.fedd.salesforce.services;
 
-import static us.abstracta.jmeter.javadsl.JmeterDsl.forEachController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonAssertion;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonExtractor;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.responseAssertion;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
+
+import com.fedd.salesforce.config.TestConfig;
 
 import org.apache.http.entity.ContentType;
-import org.apache.jmeter.protocol.http.util.HTTPConstants;
 
-import us.abstracta.jmeter.javadsl.core.assertions.DslResponseAssertion.TargetField;
 import us.abstracta.jmeter.javadsl.core.controllers.DslTransactionController;
 import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsonExtractor.JsonQueryLanguage;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
@@ -18,55 +15,37 @@ import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 /**
  * Service class for creating, querying, and deleting Salesforce Event records
  * using the JMeter Java DSL.
+ *
+ * <p>Inherits standard GET, DELETE, and bulk-delete operations from
+ * {@link AbstractSalesforceService}.</p>
  */
-public class EventService {
-        
-        // Salesforce Event fields (StartDateTime and EndDateTime must be in ISO 8601 format: yyyy-MM-ddTHH:mm:ssZ)
+public class EventService extends AbstractSalesforceService {
+
+        // Salesforce Event fields (StartDateTime and EndDateTime must be in ISO 8601 format)
         private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-        /**
-         * Fetches Event Ids owned by the current user.
-         */
-        public DslHttpSampler getEvents() {
-                return httpSampler("GET Events",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Event+WHERE+OwnerId='${ownerId}'")
-                                .children(
-                                        // The extracted variable name is updated to eventId
-                                        jsonExtractor("eventId",
-                                                        "records[*].Id")
-                                                        .matchNumber(-1)
-                                                        .defaultValue("eventId_NOT_FOUND"),
-                                        jsonAssertion("Success Assertion",
-                                                        "$.done")
-                                                        .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                        .equalsToJson("true"));
-        }
+        @Override protected String sObjectName()       { return "Event"; }
+        @Override protected String idVariable()         { return "eventId"; }
+        @Override protected String currentIdVariable()  { return "currentEventId"; }
+        @Override protected String displayName()        { return "Event"; }
 
-        /**
-         * Fetches all Event Ids regardless of owner.
-         */
-        public DslHttpSampler getAllEvents() {
-                return httpSampler("GET All Events",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Event")
-                                .children(
-                                        jsonExtractor("eventId",
-                                                        "records[*].Id")
-                                                        .matchNumber(-1)
-                                                        .defaultValue("eventId_NOT_FOUND"),
-                                        jsonAssertion("Success Assertion",
-                                                        "$.done")
-                                                        .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                        .equalsToJson("true"));
-        }
+        /** @deprecated Use {@link #getByOwner()} instead. */
+        public DslHttpSampler getEvents() { return getByOwner(); }
+
+        /** @deprecated Use {@link #getAll()} instead. */
+        public DslHttpSampler getAllEvents() { return getAll(); }
+
+        /** @deprecated Use {@link #deleteRecord()} instead. */
+        public DslHttpSampler deleteEvent() { return deleteRecord(); }
 
         /**
          * Creates a new Event record in Salesforce.
-         * The body is updated with required Event fields: StartDateTime and EndDateTime.
+         * Uses ISO 8601 date format for StartDateTime and EndDateTime fields.
+         *
+         * @return an HTTP sampler that POSTs an Event and validates the response
          */
         public DslHttpSampler createEvent() {
-                // The URL is updated to target the Event sObject
-                return httpSampler("CREATE New Event",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Event/")
+                return httpSampler("CREATE New Event", TestConfig.restUrl("Event"))
                                 .post("""
                                                 {
                                                    "OwnerId": "${ownerId}",
@@ -78,38 +57,13 @@ public class EventService {
                                                 """.formatted(DATE_TIME_FORMAT, DATE_TIME_FORMAT),
                                                 ContentType.APPLICATION_JSON)
                                 .children(
-                                        jsonExtractor("eventId",
-                                                        "id")
-                                                        .defaultValue("eventId_NOT_FOUND"),
-                                        jsonAssertion("Success Assertion",
-                                                        "$.success")
-                                                        .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                        .equalsToJson("true"));
+                                                jsonExtractor("eventId", "id")
+                                                                .defaultValue("eventId_NOT_FOUND"),
+                                                jsonAssertion("Success Assertion", "$.success")
+                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
+                                                                .equalsToJson("true"));
         }
 
-        /**
-         * Deletes a specific Event record.
-         */
-        public DslHttpSampler deleteEvent() {
-                return httpSampler("DELETE Event",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Event/${currentEventId}")
-                                .method(HTTPConstants.DELETE)
-                                .children(
-                                        responseAssertion()
-                                                        .fieldToTest(TargetField.RESPONSE_CODE)
-                                                        .equalsToStrings(
-                                                                        "204"));
-        }
-
-        /**
-         * Retrieves all Events and deletes them using a ForEach Controller.
-         */
-        public DslTransactionController deleteAllEvents() {
-                return transaction("Event Clean Up",
-                                getEvents(), // Gets all event Ids
-                                forEachController("ForEach EventId",
-                                        "eventId",
-                                        "currentEventId",
-                                        deleteEvent()));
-        }
+        /** @deprecated Use {@link #deleteAll()} instead. */
+        public DslTransactionController deleteAllEvents() { return deleteAll(); }
 }

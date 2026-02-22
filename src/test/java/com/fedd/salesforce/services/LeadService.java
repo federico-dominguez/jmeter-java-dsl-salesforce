@@ -1,55 +1,51 @@
 package com.fedd.salesforce.services;
 
-import static us.abstracta.jmeter.javadsl.JmeterDsl.forEachController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonAssertion;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsr223PostProcessor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.regexExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.responseAssertion;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
+
+import com.fedd.salesforce.config.TestConfig;
 
 import org.apache.http.entity.ContentType;
-import org.apache.jmeter.protocol.http.util.HTTPConstants;
 
-import us.abstracta.jmeter.javadsl.core.assertions.DslResponseAssertion.TargetField;
 import us.abstracta.jmeter.javadsl.core.controllers.DslTransactionController;
 import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsonExtractor.JsonQueryLanguage;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 
-public class LeadService {
+/**
+ * Service class for creating, querying, converting, and deleting Salesforce Lead records
+ * using the JMeter Java DSL.
+ *
+ * <p>Inherits standard GET, DELETE, and bulk-delete operations from
+ * {@link AbstractSalesforceService}. Adds Lead-specific operations:
+ * create, convert (via SOAP API), and parameterized email generation.</p>
+ */
+public class LeadService extends AbstractSalesforceService {
 
-  public DslHttpSampler getLeads() {
-    return httpSampler("GET Leads",
-        "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead+WHERE+OwnerId='${ownerId}'")
-        .children(
-            jsonExtractor("leadId",
-                "records[*].Id")
-                .matchNumber(-1)
-                .defaultValue("leadId_NOT_FOUND"),
-            jsonAssertion("Success Assertion",
-                "$.done")
-                .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                .equalsToJson("true"));
-  }
+  @Override protected String sObjectName()       { return "Lead"; }
+  @Override protected String idVariable()         { return "leadId"; }
+  @Override protected String currentIdVariable()  { return "currentLeadId"; }
+  @Override protected String displayName()        { return "Lead"; }
 
-  public DslHttpSampler getAllLeads() {
-    return httpSampler("GET All Leads",
-        "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Lead")
-        .children(
-            jsonExtractor("leadId",
-                "records[*].Id")
-                .matchNumber(-1)
-                .defaultValue("leadId_NOT_FOUND"),
-            jsonAssertion("Success Assertion",
-                "$.done")
-                .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                .equalsToJson("true"));
-  }
+  /** @deprecated Use {@link #getByOwner()} instead. */
+  public DslHttpSampler getLeads() { return getByOwner(); }
 
+  /** @deprecated Use {@link #getAll()} instead. */
+  public DslHttpSampler getAllLeads() { return getAll(); }
+
+  /** @deprecated Use {@link #deleteRecord()} instead. */
+  public DslHttpSampler deleteLead() { return deleteRecord(); }
+
+  /**
+   * Creates a new Lead record using CSV-parameterized data.
+   *
+   * @return an HTTP sampler that POSTs a Lead and validates the response
+   */
   public DslHttpSampler createLead() {
-    return httpSampler("CREATE New Lead",
-        "https://${BASE_URL}/services/data/v60.0/sobjects/Lead/")
+    return httpSampler("CREATE New Lead", TestConfig.restUrl("Lead"))
         .post("""
             {
              "LastName": "${p_lastname}",
@@ -61,18 +57,22 @@ public class LeadService {
             """,
             ContentType.APPLICATION_JSON)
         .children(
-            jsonExtractor("leadId",
-                "id")
+            jsonExtractor("leadId", "id")
                 .defaultValue("leadId_NOT_FOUND"),
-            jsonAssertion("Success Assertion",
-                "$.success")
+            jsonAssertion("Success Assertion", "$.success")
                 .queryLanguage(JsonQueryLanguage.JSON_PATH)
                 .equalsToJson("true"));
   }
 
+  /**
+   * Converts a Lead to an Account + Contact + Opportunity via the Salesforce SOAP API.
+   * Stores the resulting Account, Opportunity, and Contact IDs as JMeter properties
+   * for downstream use.
+   *
+   * @return an HTTP sampler that sends a SOAP convertLead request
+   */
   public DslHttpSampler convertLead() {
-    return httpSampler("UPDATE Lead to Close - Converted",
-        "https://${BASE_URL}/services/Soap/c/60.0")
+    return httpSampler("UPDATE Lead to Close - Converted", TestConfig.soapUrl())
         .post(
             """
                 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:enterprise.soap.sforce.com">
@@ -94,42 +94,19 @@ public class LeadService {
                 </soapenv:Envelope>
                 """,
             ContentType.create("text/xml", "UTF-8"))
-        .header("SOAPAction",
-            "\"\"")
+        .header("SOAPAction", "\"\"")
         .children(
-            regexExtractor("accountId",
-                "<accountId>(.+?)</accountId>"),
-            regexExtractor("opportunityId",
-                "<opportunityId>(.+?)</opportunityId>"),
-            regexExtractor("contactId",
-                "<contactId>(.+?)</contactId>"),
+            regexExtractor("accountId", "<accountId>(.+?)</accountId>"),
+            regexExtractor("opportunityId", "<opportunityId>(.+?)</opportunityId>"),
+            regexExtractor("contactId", "<contactId>(.+?)</contactId>"),
             jsr223PostProcessor("RECORD_ID Properties",
                 "props.put('ACCOUNT_ID', vars.get('accountId')); "
                     + "props.put('OPPORTUNITY_ID', vars.get('opportunityId')); "
                     + "props.put('CONTACT_ID', vars.get('contactId'));"),
-            responseAssertion(
-                "Succes Assertion")
-                .containsSubstrings(
-                    "<success>true</success>"));
+            responseAssertion("Success Assertion")
+                .containsSubstrings("<success>true</success>"));
   }
 
-  public DslHttpSampler deleteLead() {
-    return httpSampler("DELETE Lead",
-        "https://${BASE_URL}/services/data/v60.0/sobjects/Lead/${currentLeadId}")
-        .method(HTTPConstants.DELETE)
-        .children(
-            responseAssertion()
-                .fieldToTest(TargetField.RESPONSE_CODE)
-                .equalsToStrings(
-                    "204"));
-  }
-
-  public DslTransactionController deleteAllLeads() {
-    return transaction("Leads Clean Up",
-        getLeads(),
-        forEachController("ForEach LeadId",
-            "leadId",
-            "currentLeadId",
-            deleteLead()));
-  }
+  /** @deprecated Use {@link #deleteAll()} instead. */
+  public DslTransactionController deleteAllLeads() { return deleteAll(); }
 }

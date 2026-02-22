@@ -1,57 +1,53 @@
 package com.fedd.salesforce.services;
 
-import static us.abstracta.jmeter.javadsl.JmeterDsl.forEachController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonAssertion;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonExtractor;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.responseAssertion;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
+
+import com.fedd.salesforce.config.TestConfig;
 
 import org.apache.http.entity.ContentType;
-import org.apache.jmeter.protocol.http.util.HTTPConstants;
 
-import us.abstracta.jmeter.javadsl.core.assertions.DslResponseAssertion.TargetField;
 import us.abstracta.jmeter.javadsl.core.controllers.DslTransactionController;
 import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsonExtractor.JsonQueryLanguage;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 
-public class CaseService {
-        public DslHttpSampler getCases() {
-                return httpSampler("GET Cases",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Case+WHERE+OwnerId='${ownerId}'")
-                                .children(
-                                                jsonExtractor("caseId",
-                                                                "records[*].Id")
-                                                                .matchNumber(-1)
-                                                                .defaultValue("caseId_NOT_FOUND"),
-                                                jsonAssertion("Success Assertion",
-                                                                "$.done")
-                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                                .equalsToJson("true"));
-        }
+/**
+ * Service class for creating, querying, and deleting Salesforce Case records
+ * using the JMeter Java DSL.
+ *
+ * <p>Inherits standard GET, DELETE, and bulk-delete operations from
+ * {@link AbstractSalesforceService}.</p>
+ */
+public class CaseService extends AbstractSalesforceService {
 
-        public DslHttpSampler getAllCases() {
-                return httpSampler("GET All Cases",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Case")
-                                .children(
-                                                jsonExtractor("caseId",
-                                                                "records[*].Id")
-                                                                .matchNumber(-1)
-                                                                .defaultValue("caseId_NOT_FOUND"),
-                                                jsonAssertion("Success Assertion",
-                                                                "$.done")
-                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                                .equalsToJson("true"));
-        }
+        @Override protected String sObjectName()       { return "Case"; }
+        @Override protected String idVariable()         { return "caseId"; }
+        @Override protected String currentIdVariable()  { return "currentCaseId"; }
+        @Override protected String displayName()        { return "Case"; }
 
+        /** @deprecated Use {@link #getByOwner()} instead. */
+        public DslHttpSampler getCases() { return getByOwner(); }
+
+        /** @deprecated Use {@link #getAll()} instead. */
+        public DslHttpSampler getAllCases() { return getAll(); }
+
+        /** @deprecated Use {@link #deleteRecord()} instead. */
+        public DslHttpSampler deleteCase() { return deleteRecord(); }
+
+        /**
+         * Creates a new Case record in Salesforce.
+         * <p>Uses the contactId from the Lead conversion (stored in JMeter properties)
+         * instead of a hardcoded value.</p>
+         *
+         * @return an HTTP sampler that POSTs a Case and validates the response
+         */
         public DslHttpSampler createCase() {
-                return httpSampler("CREATE New Case",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Case/")
+                return httpSampler("CREATE New Case", TestConfig.restUrl("Case"))
                                 .post("""
                                                 {
-                                                 "ContactId": "003gK00000PQO1uQAH",
+                                                 "ContactId": "${__P(CONTACT_ID,)}",
                                                  "OwnerId": "${ownerId}",
-                                                 "Priority": "High",
                                                  "Priority": "Normal",
                                                  "Reason": "Performance",
                                                  "Status": "New",
@@ -61,32 +57,13 @@ public class CaseService {
                                                 """,
                                                 ContentType.APPLICATION_JSON)
                                 .children(
-                                                jsonExtractor("caseId",
-                                                                "id")
+                                                jsonExtractor("caseId", "id")
                                                                 .defaultValue("caseId_NOT_FOUND"),
-                                                jsonAssertion("Success Assertion",
-                                                                "$.success")
+                                                jsonAssertion("Success Assertion", "$.success")
                                                                 .queryLanguage(JsonQueryLanguage.JSON_PATH)
                                                                 .equalsToJson("true"));
         }
 
-        public DslHttpSampler deleteCase() {
-                return httpSampler("DELETE Case",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Case/${currentCaseId}")
-                                .method(HTTPConstants.DELETE)
-                                .children(
-                                                responseAssertion()
-                                                                .fieldToTest(TargetField.RESPONSE_CODE)
-                                                                .equalsToStrings(
-                                                                                "204"));
-        }
-
-        public DslTransactionController deleteAllCases() {
-                return transaction("Case Clean Up",
-                                getCases(),
-                                forEachController("ForEach CaseId",
-                                                "caseId",
-                                                "currentCaseId",
-                                                deleteCase()));
-        }
+        /** @deprecated Use {@link #deleteAll()} instead. */
+        public DslTransactionController deleteAllCases() { return deleteAll(); }
 }
