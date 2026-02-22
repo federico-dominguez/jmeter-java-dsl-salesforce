@@ -56,20 +56,41 @@ public class LeadToCashThreadGroup {
      * @param withThinkTime if {@code false}, skips the 4-6s random timer (useful for debug runs)
      */
     public DslDefaultThreadGroup getLeadToCashThreadGroup(int users, int iterations, boolean withThinkTime) {
+        return getLeadToCashThreadGroup(users, iterations, withThinkTime, false);
+    }
+
+    /**
+     * Builds the thread group with full control over think time and step execution.
+     *
+     * @param users         number of concurrent users
+     * @param iterations    iterations per user
+     * @param withThinkTime if {@code false}, skips the 4-6s random timer
+     * @param forceAllSteps if {@code true}, sets all probabilities to 100% so every
+     *                      branch executes (useful for debug/validation runs)
+     */
+    public DslDefaultThreadGroup getLeadToCashThreadGroup(int users, int iterations,
+            boolean withThinkTime, boolean forceAllSteps) {
+
+        String noteChance     = forceAllSteps ? "100" : NOTE_CHANCE;
+        String taskChance     = forceAllSteps ? "100" : TASK_CHANCE;
+        String eventChance    = forceAllSteps ? "100" : EVENT_CHANCE;
+        String caseChance     = forceAllSteps ? "100" : CASE_CHANCE;
+        String conversionRate = forceAllSteps ? "100" : CONVERSION_RATE;
+        String closingRate    = forceAllSteps ? "100" : CLOSING_RATE;
 
         DslDefaultThreadGroup tg = threadGroup("Lead to Cash", users, iterations,
 
                 httpHeaders()
                         .header("Authorization", "Bearer ${__P(ACCESS_TOKEN,)}"),
 
-                // Load percentages into JMeter variables correctly
+                // Load percentages into JMeter variables
                 vars()
-                        .set("NOTE_CHANCE", NOTE_CHANCE)
-                        .set("TASK_CHANCE", TASK_CHANCE)
-                        .set("EVENT_CHANCE", EVENT_CHANCE)
-                        .set("CASE_CHANCE", CASE_CHANCE)
-                        .set("LEAD_CONVERSION_RATE", CONVERSION_RATE)
-                        .set("CLOSING_RATE", CLOSING_RATE));
+                        .set("NOTE_CHANCE", noteChance)
+                        .set("TASK_CHANCE", taskChance)
+                        .set("EVENT_CHANCE", eventChance)
+                        .set("CASE_CHANCE", caseChance)
+                        .set("LEAD_CONVERSION_RATE", conversionRate)
+                        .set("CLOSING_RATE", closingRate));
 
         if (withThinkTime) {
             // Random think time between 4-6 seconds
