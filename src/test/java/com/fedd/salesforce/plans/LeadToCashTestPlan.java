@@ -1,6 +1,7 @@
 package com.fedd.salesforce.plans;
 
 import static us.abstracta.jmeter.javadsl.JmeterDsl.csvDataSet;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.htmlReporter;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCache;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.influxDbListener;
@@ -52,6 +53,8 @@ public class LeadToCashTestPlan {
                                 .token(TestConfig.INFLUXDB_TOKEN)
                                 .title("Salesforce Lead to Cash Performance Test")
                                 .application("salesforce-lead-to-cash"),
+                        htmlReporter("target/report"),
+
                         authGroup.getSetupThreadGroup(),
                         leadToCashGroup.getLeadToCashThreadGroup(1, 1),
                         cleanUpGroup.getTeardownThreadGroup()
@@ -78,6 +81,8 @@ public class LeadToCashTestPlan {
                         httpCache().disable(),
                         httpCookies().disable(),
                         // No think time, no InfluxDB, all steps forced to 100%
+                        htmlReporter("target/debug-report-html"),
+
                         authGroup.getSetupThreadGroup(),
                         leadToCashGroup.getLeadToCashThreadGroup(1, 1, false, true),
                         cleanUpGroup.getTeardownThreadGroup()
