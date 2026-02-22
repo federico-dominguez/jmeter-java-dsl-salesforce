@@ -1,6 +1,6 @@
 # Salesforce Performance Testing with JMeter Java DSL
 
-A production-ready performance testing framework for Salesforce APIs using **JMeter Java DSL 2.1**. This project demonstrates a modern, code-first approach to performance engineering — replacing traditional JMX files with type-safe, maintainable Java code — with support for local execution, real-time Grafana monitoring, and BlazeMeter cloud-scale testing.
+A production-ready performance testing framework for Salesforce APIs using **JMeter Java DSL 2.1**. This project demonstrates a modern, code-first approach to performance engineering — replacing traditional JMX files with type-safe, maintainable Java code — with support for local execution, real-time Grafana monitoring, BlazeMeter cloud-scale testing, and AI-assisted debugging.
 
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)
 ![Maven](https://img.shields.io/badge/Maven-3.6+-blue?logo=apache-maven)
@@ -20,6 +20,7 @@ A production-ready performance testing framework for Salesforce APIs using **JMe
 - [Setup](#-setup)
 - [Running Tests](#-running-tests)
 - [Test Scenario: Lead-to-Cash](#-test-scenario-lead-to-cash)
+- [Debug Mode (AI-Assisted Analysis)](#-debug-mode-ai-assisted-analysis)
 - [Real-Time Monitoring with Grafana](#-real-time-monitoring-with-grafana)
 - [BlazeMeter Cloud Execution](#-blazemeter-cloud-execution)
 - [CI/CD Pipeline](#-cicd-pipeline)
@@ -61,11 +62,13 @@ This project implements a comprehensive **Lead-to-Cash** performance testing sui
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Test Runner                              │
 │              (PerformanceTest.java — JUnit 5)                   │
-├──────────────────────┬──────────────────────────────────────────┤
-│   Local Execution    │         Cloud Execution                  │
-│  LeadToCashTestPlan  │   LeadToCashBlazeMeterTestPlan           │
-│  + InfluxDB Listener │   + BlazeMeterEngine (20 users)          │
-├──────────────────────┴──────────────────────────────────────────┤
+│         @Tag("local") │ @Tag("cloud") │ @Tag("debug")          │
+├──────────────────────┬─────────────────┬────────────────────────┤
+│   Local Execution    │ Cloud Execution │   Debug Execution      │
+│  LeadToCashTestPlan  │ LeadToCashBM    │  getDebugTestPlan()    │
+│  + InfluxDB Listener │ + BlazeMeter    │  + TestResultLogger    │
+│  + HTML Reporter     │   Engine        │  + HTML Reporter       │
+├──────────────────────┴─────────────────┴────────────────────────┤
 │                     Thread Groups                               │
 │  ┌──────────┐   ┌──────────────┐   ┌──────────────────┐        │
 │  │  Setup   │──▶│ Lead-to-Cash │──▶│  TearDown        │        │
@@ -73,12 +76,21 @@ This project implements a comprehensive **Lead-to-Cash** performance testing sui
 │  └──────────┘   └──────────────┘   └──────────────────┘        │
 ├─────────────────────────────────────────────────────────────────┤
 │                     Service Layer                               │
-│  AuthService │ LeadService │ AccountService │ OpportunityService│
-│  TaskService │ EventService │ CaseService  │ NoteService        │
+│           ┌─ AbstractSalesforceService (base) ─┐               │
+│           │  getByOwner() │ deleteAll() │ ...   │               │
+│  ┌────────┴────────────────────────────────────┴────────┐      │
+│  │ LeadService │ AccountService │ OpportunityService    │      │
+│  │ TaskService │ EventService   │ CaseService           │      │
+│  │ NoteService │ AuthService                            │      │
+│  └──────────────────────────────────────────────────────┘      │
+├─────────────────────────────────────────────────────────────────┤
+│                     Configuration                               │
+│              TestConfig.java (centralized URLs,                 │
+│              API version, credentials, paths)                   │
 ├──────────────┬──────────────────────────────┬───────────────────┤
 │  Salesforce  │       InfluxDB 2.7           │     Grafana       │
-│  REST API    │   (Time-Series Metrics)      │   (Dashboards)    │
-│  v60.0       │                              │                   │
+│  REST + SOAP │   (Time-Series Metrics)      │   (Dashboards)    │
+│  API v60.0   │                              │                   │
 └──────────────┴──────────────────────────────┴───────────────────┘
 ```
 
@@ -88,15 +100,19 @@ This project implements a comprehensive **Lead-to-Cash** performance testing sui
 
 - **Code-Based Test Plans** — Type-safe Java DSL with IDE autocompletion, no XML
 - **Dual Execution Modes** — Local JMeter engine for development, BlazeMeter cloud for load testing
+- **Debug Mode** — AI-readable structured reports with full sampler details (`mvn test -Pdebug`)
 - **JWT Authentication** — Salesforce OAuth 2.0 JWT Bearer Flow with Groovy-based token generation
-- **Service Layer Pattern** — Reusable, modular API service components (`LeadService`, `AccountService`, etc.)
+- **Service Layer Pattern** — Abstract base class with reusable CRUD operations; one service per Salesforce object
+- **Centralized Configuration** — `TestConfig.java` for URLs, API version, credentials, and paths
 - **Data-Driven Testing** — CSV-based parameterized test data with configurable probability distributions
 - **Probabilistic Workflow** — Configurable chance-based execution (e.g., 35% lead conversion, 65% note creation)
 - **Automatic Cleanup** — TearDown thread group deletes all test records to prevent data pollution
 - **Real-Time Monitoring** — InfluxDB + Grafana dashboards with pre-configured panels
+- **HTML Report** — Self-contained JMeter Dashboard Report generated at `target/report/`
 - **Cloud-Ready** — BlazeMeter asset upload, environment variable injection, and P99 assertions
 - **CI/CD Integration** — GitHub Actions pipeline with automated test execution and artifact collection
 - **Comprehensive Assertions** — JSON path validation, response code checks, and SLA-based performance thresholds
+- **Maven Profiles** — `local`, `cloud`, `debug`, and `all` profiles mapped to JUnit 5 `@Tag` annotations
 
 ---
 
@@ -114,24 +130,28 @@ jmeter-java-dsl-salesforce/
 │   │           └── leads_data.csv                  # Parameterized test data
 │   └── test/
 │       ├── java/com/fedd/salesforce/
-│       │   ├── PerformanceTest.java                # JUnit 5 test runner
+│       │   ├── PerformanceTest.java                # JUnit 5 test runner (@Tag: local, cloud, debug)
+│       │   ├── config/
+│       │   │   └── TestConfig.java                 # Centralized URLs, credentials, API version
 │       │   ├── plans/
-│       │   │   ├── LeadToCashTestPlan.java         # Local execution plan + InfluxDB
+│       │   │   ├── LeadToCashTestPlan.java         # Local execution + InfluxDB + HTML report
 │       │   │   └── LeadToCashBlazeMeterTestPlan.java # Cloud execution plan
 │       │   ├── scenarios/
 │       │   │   ├── AuthenticationSetupThreadGroup.java   # JWT Bearer Flow auth
 │       │   │   ├── LeadToCashThreadGroup.java            # Main business workflow
 │       │   │   └── CleanUpTeardownThreadGroup.java       # Record cleanup
 │       │   ├── services/
+│       │   │   ├── AbstractSalesforceService.java  # Base class: GET, DELETE, bulk-delete
 │       │   │   ├── AuthService.java                # JWT token generation
-│       │   │   ├── LeadService.java                # Lead CRUD + conversion
+│       │   │   ├── LeadService.java                # Lead CRUD + SOAP conversion
 │       │   │   ├── AccountService.java             # Account operations
 │       │   │   ├── OpportunityService.java         # Opportunity close flow
 │       │   │   ├── TaskService.java                # Task operations
 │       │   │   ├── EventService.java               # Event operations
 │       │   │   ├── CaseService.java                # Case operations
 │       │   │   └── NoteService.java                # Note operations
-│       │   └── utils/                              # Utility classes
+│       │   └── utils/
+│       │       └── TestResultLogger.java           # AI-readable structured debug reports
 │       └── resources/
 │           ├── log4j2-test.xml                     # Logging configuration
 │           └── scripts/
@@ -146,7 +166,7 @@ jmeter-java-dsl-salesforce/
 │   └── images/                                     # Dashboard screenshots
 ├── docker-compose.yml                              # InfluxDB + Grafana stack
 ├── .env.example                                    # Environment variable template
-├── pom.xml                                         # Maven dependencies
+├── pom.xml                                         # Maven dependencies + profiles
 └── README.md
 ```
 
@@ -232,28 +252,50 @@ export $(grep -v '^#' .env | xargs)
 
 ## 🧪 Running Tests
 
+### Maven Profiles & JUnit Tags
+
+Tests are organized using **JUnit 5 `@Tag` annotations** mapped to **Maven profiles**:
+
+| Profile | Command | Tag | Description |
+|---------|---------|-----|-------------|
+| `local` (default) | `mvn test` | `@Tag("local")` | Local JMeter engine + InfluxDB + HTML report |
+| `cloud` | `mvn test -Pcloud` | `@Tag("cloud")` | BlazeMeter cloud (requires `BZ_TOKEN`) |
+| `debug` | `mvn test -Pdebug` | `@Tag("debug")` | 1 user, 1 iteration, full flow, AI-readable report |
+| `all` | `mvn test -Pall` | — | Runs all test tags |
+
 ### Local Execution
 
 ```bash
-mvn test -Dtest=PerformanceTest#test
+mvn test
 ```
 
-Runs the Lead-to-Cash workflow locally with the JMeter engine. Results are saved to `target/jtls/`.
+Runs the Lead-to-Cash workflow locally with the JMeter engine. Results are saved to `target/jtls/` and an HTML dashboard report is generated at `target/report/index.html`.
+
+### Debug Execution
+
+```bash
+mvn test -Pdebug
+```
+
+Runs a single-user, single-iteration test with **all workflow steps forced to 100%** (no random skipping). Generates:
+- `target/debug-report.txt` — AI-readable structured text report with full sampler details
+- `target/debug-report-html/` — JMeter HTML dashboard report
+- `target/jtls/debug.jtl` — Rich JTL file with all fields enabled
 
 ### BlazeMeter Cloud Execution
 
 ```bash
-mvn test -Dtest=PerformanceTest#blazeMeterTest
+mvn test -Pcloud
 ```
 
 Uploads the test plan and CSV data to BlazeMeter, executes with **20 concurrent users** (5-minute ramp-up, 5-minute hold), and validates the P99 response time is under 5 seconds.
 
-> The BlazeMeter test gracefully skips if `BZ_TOKEN` is not set.
+> The BlazeMeter test throws an `IllegalStateException` if `BZ_TOKEN` is not set.
 
 ### Full Test Suite
 
 ```bash
-mvn test
+mvn test -Pall
 ```
 
 ---
@@ -291,9 +333,64 @@ Authentication (JWT Bearer Flow)
 | 4 | Create Task | 75% | `POST /services/data/v60.0/sobjects/Task/` | Task ID returned |
 | 5 | Create Event | 20% | `POST /services/data/v60.0/sobjects/Event/` | Event ID returned |
 | 6 | Create Case | 20% | `POST /services/data/v60.0/sobjects/Case/` | Case ID returned |
-| 7 | Convert Lead | 35% | `POST /services/data/v60.0/actions/standard/convertLead` | Account + Opportunity IDs |
+| 7 | Convert Lead | 35% | `POST /services/Soap/c/60.0` (SOAP convertLead) | Account + Contact + Opportunity IDs |
 | 8 | Close Opportunity | ~17.5% | `PATCH /services/data/v60.0/sobjects/Opportunity/` | `StageName: Closed Won` |
-| 9 | Cleanup | 100% | `DELETE` per record type | 200 OK for all deletions |
+| 9 | Cleanup | 100% | `DELETE` per record type | 204 No Content for all deletions |
+
+---
+
+## 🐛 Debug Mode (AI-Assisted Analysis)
+
+The debug profile (`mvn test -Pdebug`) is designed for **AI-assisted troubleshooting**. It generates a structured text report that can be pasted directly into an AI assistant for analysis.
+
+### How It Works
+
+1. **Forces 100% probability** on all `ifController` branches via `forceAllSteps=true`, so every sampler executes
+2. **Runs 1 user, 1 iteration** with no think times for fast validation
+3. **Logs every sampler** using a `jsr223PostProcessor` that calls `TestResultLogger.logSample()`
+4. **Writes a rich JTL** with all fields (`debug.jtl`) and an HTML dashboard report
+
+### Output: `target/debug-report.txt`
+
+The report is printed to stdout and saved to `target/debug-report.txt` with this format:
+
+```
+================================================================================
+                    PERFORMANCE TEST DEBUG REPORT
+================================================================================
+  Format: #N [STATUS] HTTP_CODE SAMPLER_NAME | DURATIONms
+================================================================================
+
+#1   [PASS] 200 Authentication | 1310ms
+     URL: https://your-org.my.salesforce.com/services/oauth2/token
+     Request: POST ... grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=...
+     Response (1240 bytes): {"access_token":"00D...","token_type":"Bearer"}
+--------------------------------------------------------------------------------
+#2   [PASS] 201 CREATE New Lead | 530ms
+     ...
+```
+
+Each sampler entry includes:
+- Sampler name, pass/fail status, HTTP code, duration
+- Full URL and request body
+- Full response body (truncated at 2000 characters)
+- Assertion failures (if any)
+- Sub-results (redirects, embedded resources)
+
+### Running Debug Tests
+
+```bash
+mvn test -Pdebug
+```
+
+### What Gets Generated
+
+| Output | Path | Description |
+|--------|------|-------------|
+| Text report | `target/debug-report.txt` | AI-readable structured sampler details |
+| HTML dashboard | `target/debug-report-html/index.html` | JMeter-style visual report |
+| JTL file | `target/jtls/debug.jtl` | Rich JTL with all fields enabled |
+| Console output | stdout | Full report printed after test completion |
 
 ---
 
@@ -416,7 +513,7 @@ jobs:
 | `SALESFORCE_USERNAME` | Salesforce username for JWT auth |
 | `AUDIENCE` | Salesforce login URL (`https://login.salesforce.com`) |
 
-> **Note:** The `blazeMeterTest` automatically skips in CI when `BZ_TOKEN` is not configured, so only the local test runs in the pipeline.
+> **Note:** The `blazeMeterTest` throws an `IllegalStateException` in CI when `BZ_TOKEN` is not configured, so only the local test runs in the default pipeline.
 
 ---
 
@@ -424,26 +521,29 @@ jobs:
 
 ### Test Plan Parameters
 
-| Parameter | Local Plan | BlazeMeter Plan | Description |
-|-----------|-----------|-----------------|-------------|
-| Users | 1 (dev) | 20 | Concurrent virtual users |
-| Iterations | 1 | 1 | Iterations per user |
-| Ramp-up | — | 5 minutes | Time to reach full concurrency |
-| Hold | — | 5 minutes | Steady-state duration |
-| Think Time | 1–3 seconds | 100–300 ms | Random delay between requests |
+| Parameter | Local Plan | BlazeMeter Plan | Debug Plan | Description |
+|-----------|-----------|-----------------|------------|-------------|
+| Users | 1 (dev) | 20 | 1 | Concurrent virtual users |
+| Iterations | 1 | 1 | 1 | Iterations per user |
+| Ramp-up | — | 5 minutes | — | Time to reach full concurrency |
+| Hold | — | 5 minutes | — | Steady-state duration |
+| Think Time | 1–3 seconds | 1–3 seconds | None | Random delay between requests |
+| InfluxDB | ✅ | — | — | Real-time metrics to InfluxDB |
+| HTML Report | ✅ | — | ✅ | JMeter Dashboard HTML report |
+| Force All Steps | — | — | ✅ | All `ifController` branches execute |
 
 ### Probability Distributions
 
-All probabilities are configurable in `LeadToCashThreadGroup.java`:
+All probabilities are configurable in `LeadToCashThreadGroup.java` via JMeter properties with `__P()` defaults. In debug mode, all are forced to 100%.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `NOTE_CHANCE` | 65% | Probability of creating a Note |
-| `TASK_CHANCE` | 75% | Probability of creating a Task |
-| `EVENT_CHANCE` | 20% | Probability of creating an Event |
-| `CASE_CHANCE` | 20% | Probability of creating a Case |
-| `CONVERSION_RATE` | 35% | Probability of converting a Lead |
-| `CLOSING_RATE` | 50% | Probability of closing the Opportunity |
+| Parameter | Default | Debug Mode | Description |
+|-----------|---------|------------|-------------|
+| `NOTE_CHANCE` | 65% | 100% | Probability of creating a Note |
+| `TASK_CHANCE` | 75% | 100% | Probability of creating a Task |
+| `EVENT_CHANCE` | 20% | 100% | Probability of creating an Event |
+| `CASE_CHANCE` | 20% | 100% | Probability of creating a Case |
+| `CONVERSION_RATE` | 35% | 100% | Probability of converting a Lead |
+| `CLOSING_RATE` | 50% | 100% | Probability of closing the Opportunity |
 
 ### CSV Test Data
 
@@ -451,9 +551,10 @@ Located at `src/main/resources/data/leads_data.csv`:
 
 ```csv
 lastname,company,email_prefix,leadsource,amount
-Smith,Acme Corp,john.smith,Web,50000
-Johnson,Tech Solutions,sarah.johnson,Referral,75000
-Williams,Global Industries,mike.williams,Partner,100000
+Smith,Acme Corp,john.smith,Web,15000
+Doe,Globex Corporation,jane.doe,Phone Inquiry,5000
+Johnson,Soylent Corp,b.johnson,Partner Referral,75000
+...
 ```
 
 ---
@@ -502,17 +603,20 @@ Upload `server.crt` to the Connected App. Base64-encode `server.key` for the `.e
 ## 📚 Best Practices
 
 ### Performance Testing
-- Start with 1 user, validate correctness, then scale
+- Start with `mvn test -Pdebug` to validate correctness, then scale with `-Plocal` or `-Pcloud`
 - Always use TearDown thread groups to clean up test data
 - Respect Salesforce API limits (Developer Edition: 15,000 calls/day)
 - Use assertions to validate responses, not just measure throughput
 - Monitor in real time with Grafana during local development
+- Use the debug report (`target/debug-report.txt`) for AI-assisted troubleshooting
 
 ### Code Architecture
-- Follow the Service Layer pattern — one service class per Salesforce object
+- Follow the Service Layer pattern — extend `AbstractSalesforceService` for new objects
 - Keep test plans thin — delegate business logic to services
+- Use `TestConfig` for all URLs and credentials — no hardcoded values
 - Use configurable probabilities for realistic workflow simulation
-- Separate local and cloud test plans for different execution contexts
+- Separate local, cloud, and debug test plans for different execution contexts
+- Use `@Tag` annotations with Maven profiles for test organization
 
 ### Security
 - Never commit `.env` or credentials to Git
