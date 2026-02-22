@@ -1,52 +1,50 @@
 package com.fedd.salesforce.services;
 
-import static us.abstracta.jmeter.javadsl.JmeterDsl.forEachController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonAssertion;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.jsonExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.responseAssertion;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.transaction;
+
+import com.fedd.salesforce.config.TestConfig;
 
 import org.apache.http.entity.ContentType;
 import org.apache.jmeter.protocol.http.util.HTTPConstants;
 
 import us.abstracta.jmeter.javadsl.core.assertions.DslResponseAssertion.TargetField;
 import us.abstracta.jmeter.javadsl.core.controllers.DslTransactionController;
-import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsonExtractor.JsonQueryLanguage;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
 
-public class OpportunityService {
-        public DslHttpSampler getOpportunities() {
-                return httpSampler("GET Opportunities",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Opportunity+WHERE+OwnerId='${ownerId}'")
-                                .children(
-                                                jsonExtractor("opportunityId",
-                                                                "records[*].Id")
-                                                                .matchNumber(-1)
-                                                                .defaultValue("opportunityId_NOT_FOUND"),
-                                                jsonAssertion("Success Assertion",
-                                                                "$.done")
-                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                                .equalsToJson("true"));
-        }
+/**
+ * Service class for querying, updating, and deleting Salesforce Opportunity records
+ * using the JMeter Java DSL.
+ *
+ * <p>Opportunities are created implicitly via Lead conversion. This service provides
+ * the close operation (update StageName to "Closed Won") and cleanup.
+ * Inherits standard GET, DELETE, and bulk-delete from {@link AbstractSalesforceService}.</p>
+ */
+public class OpportunityService extends AbstractSalesforceService {
 
-        public DslHttpSampler getAllOpportunities() {
-                return httpSampler("GET All Opportunities",
-                                "https://${BASE_URL}/services/data/v60.0/query/?q=SELECT+Id+FROM+Opportunity")
-                                .children(
-                                                jsonExtractor("opportunityId",
-                                                                "records[*].Id")
-                                                                .matchNumber(-1)
-                                                                .defaultValue("opportunityId_NOT_FOUND"),
-                                                jsonAssertion("Success Assertion",
-                                                                "$.done")
-                                                                .queryLanguage(JsonQueryLanguage.JSON_PATH)
-                                                                .equalsToJson("true"));
-        }
+        @Override protected String sObjectName()       { return "Opportunity"; }
+        @Override protected String idVariable()         { return "opportunityId"; }
+        @Override protected String currentIdVariable()  { return "currentOpportunityId"; }
+        @Override protected String displayName()        { return "Opportunity"; }
+        @Override protected String pluralDisplayName()   { return "Opportunities"; }
 
+        /** @deprecated Use {@link #getByOwner()} instead. */
+        public DslHttpSampler getOpportunities() { return getByOwner(); }
+
+        /** @deprecated Use {@link #getAll()} instead. */
+        public DslHttpSampler getAllOpportunities() { return getAll(); }
+
+        /** @deprecated Use {@link #deleteRecord()} instead. */
+        public DslHttpSampler deleteOpportunity() { return deleteRecord(); }
+
+        /**
+         * Updates an Opportunity to "Closed Won" with the parameterized amount.
+         *
+         * @return an HTTP sampler that PATCHes the Opportunity and asserts HTTP 204
+         */
         public DslHttpSampler closeOpportunity() {
                 return httpSampler("UPDATE Opportunity to Closed Won",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Opportunity/${opportunityId}")
+                                TestConfig.recordUrl("Opportunity", "${opportunityId}"))
                                 .method(HTTPConstants.PATCH)
                                 .contentType(ContentType.APPLICATION_JSON)
                                 .body("""
@@ -56,32 +54,11 @@ public class OpportunityService {
                                                 }
                                                 """)
                                 .children(
-                                                responseAssertion(
-                                                                "Response Code Assertion")
+                                                responseAssertion("Response Code Assertion")
                                                                 .fieldToTest(TargetField.RESPONSE_CODE)
-                                                                .equalsToStrings(
-                                                                                "204"));
+                                                                .equalsToStrings("204"));
         }
 
-        public DslHttpSampler deleteOpportunity() {
-                return httpSampler("DELETE Opportunity",
-                                "https://${BASE_URL}/services/data/v60.0/sobjects/Opportunity/${currentOpportunityId}")
-                                .method(HTTPConstants.DELETE)
-                                .children(
-                                                responseAssertion()
-                                                                .fieldToTest(TargetField.RESPONSE_CODE)
-                                                                .equalsToStrings(
-                                                                                "204"));
-        }
-
-        public DslTransactionController deleteAllOpportunities() {
-                return transaction("Opportunities Clean Up",
-                                getOpportunities(),
-                                forEachController(
-                                                "ForEach OpportunityId",
-                                                "opportunityId",
-                                                "currentOpportunityId",
-                                                deleteOpportunity()));
-        }
-
+        /** @deprecated Use {@link #deleteAll()} instead. */
+        public DslTransactionController deleteAllOpportunities() { return deleteAll(); }
 }
