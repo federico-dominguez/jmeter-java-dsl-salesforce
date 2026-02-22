@@ -26,64 +26,84 @@ import us.abstracta.jmeter.javadsl.core.threadgroups.DslDefaultThreadGroup;
  */
 public class LeadToCashThreadGroup {
 
-        private final LeadService leadService = new LeadService();
-        private final OpportunityService opportunityService = new OpportunityService();
-        private final NoteService noteService = new NoteService();
-        private final TaskService taskService = new TaskService();
-        private final EventService eventService = new EventService();
-        private final CaseService caseService = new CaseService();
+    private final LeadService leadService = new LeadService();
+    private final OpportunityService opportunityService = new OpportunityService();
+    private final NoteService noteService = new NoteService();
+    private final TaskService taskService = new TaskService();
+    private final EventService eventService = new EventService();
+    private final CaseService caseService = new CaseService();
 
-        // Parameter defaults
-        private static final String NOTE_CHANCE = "${__P(NOTE_CHANCE,65)}";
-        private static final String TASK_CHANCE = "${__P(TASK_CHANCE,75)}";
-        private static final String EVENT_CHANCE = "${__P(EVENT_CHANCE,20)}";
-        private static final String CASE_CHANCE = "${__P(CASE_CHANCE,20)}";
-        private static final String CONVERSION_RATE = "${__P(CONVERSION_RATE,35)}";
-        private static final String CLOSING_RATE = "${__P(CLOSING_RATE,50)}";
+    // Parameter defaults
+    private static final String NOTE_CHANCE = "${__P(NOTE_CHANCE,65)}";
+    private static final String TASK_CHANCE = "${__P(TASK_CHANCE,75)}";
+    private static final String EVENT_CHANCE = "${__P(EVENT_CHANCE,20)}";
+    private static final String CASE_CHANCE = "${__P(CASE_CHANCE,20)}";
+    private static final String CONVERSION_RATE = "${__P(CONVERSION_RATE,35)}";
+    private static final String CLOSING_RATE = "${__P(CLOSING_RATE,50)}";
 
-        public DslDefaultThreadGroup getLeadToCashThreadGroup(int users, int iterations) {
+    /**
+     * Builds the thread group with think time enabled (default for real tests).
+     */
+    public DslDefaultThreadGroup getLeadToCashThreadGroup(int users, int iterations) {
+        return getLeadToCashThreadGroup(users, iterations, true);
+    }
 
-                return threadGroup("Lead to Cash", users, iterations,
+    /**
+     * Builds the thread group with configurable think time.
+     *
+     * @param users         number of concurrent users
+     * @param iterations    iterations per user
+     * @param withThinkTime if {@code false}, skips the 4-6s random timer (useful for debug runs)
+     */
+    public DslDefaultThreadGroup getLeadToCashThreadGroup(int users, int iterations, boolean withThinkTime) {
 
-                                httpHeaders()
-                                                .header("Authorization", "Bearer ${__P(ACCESS_TOKEN,)}"),
+        DslDefaultThreadGroup tg = threadGroup("Lead to Cash", users, iterations,
 
-                                // Load percentages into JMeter variables correctly
-                                vars()
-                                                .set("NOTE_CHANCE", NOTE_CHANCE)
-                                                .set("TASK_CHANCE", TASK_CHANCE)
-                                                .set("EVENT_CHANCE", EVENT_CHANCE)
-                                                .set("CASE_CHANCE", CASE_CHANCE)
-                                                .set("LEAD_CONVERSION_RATE", CONVERSION_RATE)
-                                                .set("CLOSING_RATE", CLOSING_RATE),
+                httpHeaders()
+                        .header("Authorization", "Bearer ${__P(ACCESS_TOKEN,)}"),
 
-                                // Random think time between 4-6 seconds
-                                uniformRandomTimer(Duration.ofSeconds(4), Duration.ofSeconds(6)),
+                // Load percentages into JMeter variables correctly
+                vars()
+                        .set("NOTE_CHANCE", NOTE_CHANCE)
+                        .set("TASK_CHANCE", TASK_CHANCE)
+                        .set("EVENT_CHANCE", EVENT_CHANCE)
+                        .set("CASE_CHANCE", CASE_CHANCE)
+                        .set("LEAD_CONVERSION_RATE", CONVERSION_RATE)
+                        .set("CLOSING_RATE", CLOSING_RATE));
 
-                                leadService.createLead(),
-
-                                // ---- Conditional Note ----
-                                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${NOTE_CHANCE})}",
-                                                noteService.createNote()),
-
-                                // ---- Conditional Task ----
-                                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${TASK_CHANCE})}",
-                                                taskService.createTask()),
-
-                                // ---- Conditional Event ----
-                                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${EVENT_CHANCE})}",
-                                                eventService.createEvent()),
-
-                                // ---- Conditional Case ----
-                                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${CASE_CHANCE})}",
-                                                caseService.createCase()),
-
-                                // ---- Lead Conversion ----
-                                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${LEAD_CONVERSION_RATE})}",
-                                                leadService.convertLead(),
-
-                                                // ---- Conditional Opportunity Closing ----
-                                                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${CLOSING_RATE})}",
-                                                                opportunityService.closeOpportunity())));
+        if (withThinkTime) {
+            // Random think time between 4-6 seconds
+            tg.children(
+                    uniformRandomTimer(Duration.ofSeconds(4), Duration.ofSeconds(6)));
         }
+
+        tg.children(
+                leadService.createLead(),
+
+                // ---- Conditional Note ----
+                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${NOTE_CHANCE})}",
+                        noteService.createNote()),
+
+                // ---- Conditional Task ----
+                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${TASK_CHANCE})}",
+                        taskService.createTask()),
+
+                // ---- Conditional Event ----
+                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${EVENT_CHANCE})}",
+                        eventService.createEvent()),
+
+                // ---- Conditional Case ----
+                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${CASE_CHANCE})}",
+                        caseService.createCase()),
+
+                // ---- Lead Conversion ----
+                ifController("${__groovy(new Random().nextInt(100) + 1 <= ${LEAD_CONVERSION_RATE})}",
+                        leadService.convertLead(),
+
+                        // ---- Conditional Opportunity Closing ----
+                        ifController("${__groovy(new Random().nextInt(100) + 1 <= ${CLOSING_RATE})}",
+                                opportunityService.closeOpportunity())));
+
+        return tg;
+    }
 }

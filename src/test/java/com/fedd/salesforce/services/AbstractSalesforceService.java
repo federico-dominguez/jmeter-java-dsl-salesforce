@@ -52,6 +52,15 @@ public abstract class AbstractSalesforceService {
      */
     protected abstract String displayName();
 
+    /**
+     * Returns the plural form of {@link #displayName()}.
+     * Defaults to {@code displayName() + "s"}. Override for irregular plurals
+     * (e.g. "Opportunities").
+     */
+    protected String pluralDisplayName() {
+        return displayName() + "s";
+    }
+
     // ── GET Operations ──────────────────────────────────────────────────────
 
     /**
@@ -60,7 +69,7 @@ public abstract class AbstractSalesforceService {
      * @return an HTTP sampler that queries records filtered by {@code ownerId}
      */
     public DslHttpSampler getByOwner() {
-        return httpSampler("GET " + displayName() + "s",
+        return httpSampler("GET " + pluralDisplayName(),
                 TestConfig.queryUrl("SELECT+Id+FROM+" + sObjectName() + "+WHERE+OwnerId='${ownerId}'"))
                 .children(
                         jsonExtractor(idVariable(), "records[*].Id")
@@ -77,7 +86,7 @@ public abstract class AbstractSalesforceService {
      * @return an HTTP sampler that queries all records
      */
     public DslHttpSampler getAll() {
-        return httpSampler("GET All " + displayName() + "s",
+        return httpSampler("GET All " + pluralDisplayName(),
                 TestConfig.queryUrl("SELECT+Id+FROM+" + sObjectName()))
                 .children(
                         jsonExtractor(idVariable(), "records[*].Id")
@@ -111,7 +120,7 @@ public abstract class AbstractSalesforceService {
      * @return a transaction controller wrapping a GET + ForEach DELETE
      */
     public DslTransactionController deleteAll() {
-        return transaction(displayName() + "s Clean Up",
+        return transaction(pluralDisplayName() + " Clean Up",
                 getByOwner(),
                 forEachController("ForEach " + displayName() + "Id",
                         idVariable(),

@@ -57,4 +57,30 @@ public class LeadToCashTestPlan {
                         cleanUpGroup.getTeardownThreadGroup()
                 );
     }
+
+    /**
+     * Debug variant: no think times, no InfluxDB listener.
+     * <p>
+     * Designed for quick validation runs where AI needs to read the full
+     * sampler output. Use with {@code TestResultLogger} for structured reporting.
+     * </p>
+     */
+    public DslTestPlan getDebugTestPlan() throws IOException {
+        return testPlan()
+                .children(
+                        vars().set("BASE_URL", TestConfig.BASE_URL)
+                                .set("ownerId", TestConfig.OWNER_ID),
+                        csvDataSet(TestConfig.CSV_PATH)
+                                .ignoreFirstLine()
+                                .variableNames("p_lastname", "p_company",
+                                        "p_email_prefix", "p_leadsource",
+                                        "p_amount"),
+                        httpCache().disable(),
+                        httpCookies().disable(),
+                        // No think time, no InfluxDB
+                        authGroup.getSetupThreadGroup(),
+                        leadToCashGroup.getLeadToCashThreadGroup(1, 1, false),
+                        cleanUpGroup.getTeardownThreadGroup()
+                );
+    }
 }

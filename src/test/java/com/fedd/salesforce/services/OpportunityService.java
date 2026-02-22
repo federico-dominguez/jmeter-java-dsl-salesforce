@@ -26,6 +26,7 @@ public class OpportunityService extends AbstractSalesforceService {
         @Override protected String idVariable()         { return "opportunityId"; }
         @Override protected String currentIdVariable()  { return "currentOpportunityId"; }
         @Override protected String displayName()        { return "Opportunity"; }
+        @Override protected String pluralDisplayName()   { return "Opportunities"; }
 
         /** @deprecated Use {@link #getByOwner()} instead. */
         public DslHttpSampler getOpportunities() { return getByOwner(); }

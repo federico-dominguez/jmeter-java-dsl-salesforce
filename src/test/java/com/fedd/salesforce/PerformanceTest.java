@@ -1,6 +1,7 @@
 package com.fedd.salesforce;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.jsr223PostProcessor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jtlWriter;
 
 import java.io.File;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import com.fedd.salesforce.config.TestConfig;
 import com.fedd.salesforce.plans.LeadToCashBlazeMeterTestPlan;
 import com.fedd.salesforce.plans.LeadToCashTestPlan;
+import com.fedd.salesforce.utils.TestResultLogger;
 
 import us.abstracta.jmeter.javadsl.blazemeter.BlazeMeterEngine;
 import us.abstracta.jmeter.javadsl.core.TestPlanStats;
@@ -57,6 +59,34 @@ public class PerformanceTest {
         assertThat(stats.overall().sampleTimePercentile99())
                 .as("P99 response time")
                 .isLessThan(Duration.ofSeconds(10));
+    }
+
+    /**
+     * Debug test for AI-assisted analysis.
+     * <p>
+     * Runs 1 user, 1 iteration, no think times. Generates a structured
+     * text report at {@code target/debug-report.txt} with full sampler details
+     * (names, HTTP codes, durations, request/response bodies, assertion results).
+     * Also saves a rich JTL with all fields for deep analysis.
+     * </p>
+     * <p>
+     * Run with: {@code mvn test -Pdebug}
+     * </p>
+     */
+    @Test
+    @Tag("debug")
+    public void debugTest() throws IOException {
+        TestResultLogger.init();
+
+        TestPlanStats stats = leadToCashTestPlan.getDebugTestPlan().children(
+                jtlWriter("target/jtls", "debug.jtl").withAllFields(true),
+                jsr223PostProcessor(s -> TestResultLogger.logSample(s.prev)),
+                new DslViewResultsTree()
+        ).run();
+
+        TestResultLogger.printReport();
+
+        assertThat(stats.overall().errorsCount()).as("Total error count").isEqualTo(0L);
     }
 
     /**
